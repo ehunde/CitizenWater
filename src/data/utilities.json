@@ -1,0 +1,13 @@
+[
+  {
+    "id": "joburg-water-crown-gardens-demo",
+    "name": "Johannesburg Water",
+    "serviceArea": "Crown Gardens, Johannesburg",
+    "latitude": -26.251111,
+    "longitude": 28.005556,
+    "email": "fault@jwater.co.za",
+    "phone": "+27 10 061 4470",
+    "directoryLabel": "Demo routing point near the Crown Gardens suburb centre; approximate coordinates, not a depot or verified service boundary.",
+    "contactSource": "https://www.johannesburgwater.co.za/contact-us/"
+  }
+]

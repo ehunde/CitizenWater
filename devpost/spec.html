@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CitizenWater | Technical Specification</title>
+<style>
+:root{color-scheme:light;--ink:#173544;--muted:#54707d;--blue:#087e8b;--pale:#eaf6f5;--line:#d8e6e7;--paper:#fff;--bg:#f3f8f8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 system-ui,-apple-system,Segoe UI,sans-serif}
+header{background:linear-gradient(125deg,#063f53,#087e8b);color:white;padding:48px max(24px,calc((100% - 1000px)/2))}
+header p{opacity:.86;max-width:720px}main{max-width:1000px;margin:28px auto;padding:0 20px 64px}
+section,.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:24px;margin:18px 0;box-shadow:0 8px 24px #0a52650a}
+h1{font-size:clamp(2rem,5vw,3.25rem);line-height:1.1;margin:.35em 0}h2{font-size:1.45rem;margin-top:0}h3{font-size:1.05rem}
+.kicker{font-size:.8rem;text-transform:uppercase;letter-spacing:.13em;font-weight:700}.badge{display:inline-block;background:#fff1c8;color:#694a00;border-radius:30px;padding:4px 12px;font-size:.85rem;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.card{margin:0;padding:18px}.card p{margin-bottom:0;color:var(--muted)}.scroll{overflow:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;vertical-align:top;padding:11px;border-bottom:1px solid var(--line)}th{color:var(--blue)}
+svg{display:block;width:100%;height:auto;max-height:260px}.flow{fill:#eaf6f5;stroke:#087e8b;stroke-width:2}.flowtext{font:14px system-ui;fill:#173544}.arrow{stroke:#54707d;stroke-width:2;marker-end:url(#arr)}
+code{background:#eef4f5;padding:2px 5px;border-radius:4px}a{color:#087e8b}li{margin:.3em 0}.note{border-left:4px solid #e0a526;padding:10px 14px;background:#fff8e6}
+footer{color:var(--muted);font-size:.9rem;padding:20px}
+@media(max-width:600px){header{padding:34px 22px}section{padding:18px}.hide-small{display:none}}
+</style>
+</head>
+<body>
+<header><div class="kicker">CitizenWater � Build blueprint</div><h1>Technical Specification</h1><p>A learning-sized plan for turning a community water issue photo into a reviewed report routed to a nearby utility, including offline capture and retry.</p><span class="badge">Approved</span></header>
+<main>
+<section><h2>What this POC proves</h2><p>One end-to-end report journey in a sample service area: take a photo, capture location, draft an issue description with AI, match a listed utility by distance, review and email the report, save it offline if needed, retry after reconnecting, and later mark it fixed or leave it open.</p><p class="note">Worldwide use is the goal, but verified global utility discovery is outside this POC. The sample directory must be labeled. If no nearby match exists, show the nearest available utility as a fallback with its distance. Never invent contacts.</p></section>
+<section><h2>Architecture at a glance</h2><svg viewBox="0 0 900 220" role="img" aria-label="Phone PWA stores reports locally, sends image to Express for AI analysis and email, and matches location to sample utility data">
+<defs><marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#54707d"/></marker></defs>
+<rect class="flow" x="20" y="50" width="190" height="115" rx="16"/><text class="flowtext" x="115" y="82" text-anchor="middle">Phone PWA</text><text class="flowtext" x="115" y="108" text-anchor="middle">HTML � CSS � JS</text><text class="flowtext" x="115" y="134" text-anchor="middle">Camera � GPS � IndexedDB</text>
+<rect class="flow" x="350" y="50" width="200" height="115" rx="16"/><text class="flowtext" x="450" y="82" text-anchor="middle">Node.js / Express</text><text class="flowtext" x="450" y="108" text-anchor="middle">OpenAI image analysis</text><text class="flowtext" x="450" y="134" text-anchor="middle">Resend email</text>
+<rect class="flow" x="690" y="50" width="190" height="115" rx="16"/><text class="flowtext" x="785" y="82" text-anchor="middle">Sample utility list</text><text class="flowtext" x="785" y="108" text-anchor="middle">Coordinates + contacts</text><text class="flowtext" x="785" y="134" text-anchor="middle">Nearest by distance</text>
+<path class="arrow" d="M212 100 H342"/><path class="arrow" d="M550 100 H682"/><text class="flowtext" x="280" y="87" text-anchor="middle">online requests</text><text class="flowtext" x="620" y="87" text-anchor="middle">coordinates</text>
+</svg><p>The phone stores drafts/photos locally. Express protects the AI/email credentials. Utility matching is deterministic, using the sample coordinates; AI does not choose the recipient.</p></section>
+<section><h2>Chosen tools</h2><div class="scroll"><table><thead><tr><th>Area</th><th>Decision</th><th>Purpose</th></tr></thead><tbody>
+<tr><td>Frontend</td><td>HTML, CSS, browser JavaScript</td><td>Matches existing skills; no framework/build step.</td></tr>
+<tr><td>Server</td><td>Node.js 24 LTS, Express 5</td><td>Familiar JavaScript backend.</td></tr>
+<tr><td>Offline PWA</td><td>Manifest, service worker, IndexedDB</td><td>Cache the app shell; keep report/photo on device for retry.</td></tr>
+<tr><td>AI</td><td>OpenAI Responses API, GPT-6 Luna</td><td>Draft an editable visible-issue description from image.</td></tr>
+<tr><td>Email</td><td>Resend through Express</td><td>Send user-approved report and photo without browser-held API key.</td></tr>
+<tr><td>Utility matching</td><td>Geographic distance over small JSON directory</td><td>Nearest listed entry and transparent fallback.</td></tr>
+</tbody></table></div><p>Server environment only: <code>OPENAI_API_KEY</code>, <code>OPENAI_MODEL</code>, <code>RESEND_API_KEY</code>, <code>EMAIL_FROM</code>, <code>PORT</code>. Never place secrets in browser code or Git. Confirm account access, sender verification, and current API costs during setup.</p></section>
+<section><h2>Report journey and recovery</h2><ol><li>Capture/select photo; save draft and image blob in IndexedDB.</li><li>Ask for location; save coordinates and timestamp. Explain permission needs.</li><li>When online, send image to <code>POST /api/analyze</code>; Express returns category and editable description. If offline or AI fails, preserve draft and allow manual text/retry.</li><li>Rank sample utilities by distance. Show selected utility, distance and contact. Disclose fallback and uncertain service jurisdiction.</li><li>Let citizen edit, inspect recipient and image, and explicitly confirm Send.</li><li>Send to <code>POST /api/reports/email</code>. "Submitted" means Resend accepted the request; it does not prove delivery, reading, or repair.</li><li>Offline reports stay pending. Show a reminder while open and on next launch; the user initiates retry. No closed-app push.</li><li>Citizen can mark fixed and archive, or keep the report open. This feedback is not external verification.</li></ol></section>
+<section><h2>API and local data</h2><ul><li><code>POST /api/analyze</code> accepts image data URL and coordinates; validates type/size; returns category, description and confidence note.</li><li><code>POST /api/reports/email</code> accepts reviewed report fields, recipient and image; validates fields/size; returns submitted state and provider message ID. An ambiguous timeout becomes "status unknown."</li><li><code>GET /api/health</code> exposes readiness only, never secrets.</li></ul><p>Local report fields: UUID, timestamps, status (draft/pending/ready/submitted/fixed), image Blob/MIME, coordinates/location time, category/description, utility and recipient IDs, provider ID, submit/fixed times, resolution note. IndexedDB has no cross-device backup; explain local storage and provide delete action. Send location/photo only for user-requested analysis or confirmed email.</p></section>
+<section><h2>Project map</h2><div class="scroll"><pre><code>public/
+  index.html � styles.css � manifest.webmanifest � service-worker.js
+  js/app.js � location.js � storage.js � api.js � utility-matcher.js � sync.js
+src/
+  data/utilities.json
+  routes/analyze.js � routes/email.js
+  services/openai.js � services/email.js
+server.js � package.json � .env.example � .gitignore
+devpost/scope.md � prd.md � spec.md � spec.html</code></pre></div><p>Cache public app-shell assets only; never cache private reports or API responses. Service functions are small, separated by user-facing responsibility.</p></section>
+<section><h2>Build order</h2><ol><li>Responsive screen shell, manifest, sample utility data.</li><li>IndexedDB and static shell caching.</li><li>Photo capture/selection and location permission/recovery.</li><li>Deterministic utility matching and distance display.</li><li>Express routes and editable OpenAI analysis.</li><li>Review screen and Resend send result states.</li><li>Pending reminder/retry and fixed/archive behavior.</li><li>Full local walkthrough, then temporary HTTPS phone preview.</li></ol></section>
+<section><h2>Out of scope and open setup choices</h2><p>Deferred: worldwide verified utility directory, AI utility discovery, jurisdiction validation, call-answer detection, direct social posting, closed-app push, accounts, remote database/sync, staff dashboard, independent repair verification, maps/geocoding, store publication, production operations. A <code>tel:</code> link cannot confirm the call was answered; social posting requires separate APIs and permissions.</p><p>Confirm during build: sample service area/contacts, Resend sender and test recipient, OpenAI account/model availability and price, HTTPS preview host, phone/browser, photo size limit. Public launch needs abuse controls, retention policy, persistence, monitoring, and privacy/legal review.</p></section>
+<section><h2>Review checklist</h2><ul><li>Matches approved PRD and HTML/CSS/JavaScript/Express experience.</li><li>Offline save, retry, privacy and email outcomes are clear.</li><li>Provider acceptance is not described as utility delivery or repair.</li><li>Utility fallback is transparent and contacts are never invented.</li><li>HTTPS phone-preview requirement is clear.</li></ul><p><strong>Status: Approved - awaiting review.</strong> The Markdown spec is canonical: <a href="spec.md">Open spec.md</a>.</p></section>
+<footer>Technical links: <a href="https://developers.openai.com/api/docs/quickstart">OpenAI quickstart</a> � <a href="https://developers.openai.com/api/docs/guides/images-vision">OpenAI image guide</a> � <a href="https://resend.com/nodejs">Resend Node.js guide</a> � <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia">MDN camera secure-context notes</a> � <a href="https://nodejs.org/en/about/previous-releases">Node releases</a> � <a href="https://expressjs.com/en/guide/migrating-5/">Express 5 guide</a></footer>
+</main></body></html>

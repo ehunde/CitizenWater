@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>CitizenWater - Product Requirements</title>
+<style>
+:root{--ink:#153447;--muted:#526a77;--blue:#126b83;--deep:#0d4059;--aqua:#d8f2ef;--paper:#f4f8f8;--card:#fff;--line:#d8e4e7;--gold:#8a5b0a;--gold-bg:#fff6df;--green:#17624e;--green-bg:#e5f4ee;--shadow:0 12px 32px rgba(17,59,74,.08)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 "Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,sans-serif}
+a{color:var(--blue)}.wrap{max-width:1120px;margin:auto;padding:28px 24px 72px}
+header{background:linear-gradient(125deg,#0d4059,#126b83 64%,#238c91);color:#fff;border-radius:24px;padding:34px clamp(24px,5vw,56px);box-shadow:var(--shadow)}
+.eyebrow{text-transform:uppercase;letter-spacing:.13em;font-size:.76rem;font-weight:750;color:#bce8e5}
+h1{font-size:clamp(2rem,5vw,3.3rem);line-height:1.08;margin:.35rem 0 .65rem;letter-spacing:-.035em}
+header p{max-width:720px;color:#e3f5f3;font-size:1.1rem;margin:.4rem 0 1.15rem}
+.badges{display:flex;flex-wrap:wrap;gap:9px}.badge{border:1px solid #ffffff66;border-radius:999px;padding:5px 12px;font-size:.82rem;background:#ffffff14}
+nav{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0 32px}nav a{padding:8px 13px;border:1px solid var(--line);border-radius:999px;text-decoration:none;background:#fff;font-size:.9rem;font-weight:650}
+section{margin:34px 0}h2{font-size:1.55rem;letter-spacing:-.02em;margin:0 0 8px;color:var(--deep)}h3{margin:0 0 8px;color:var(--deep);font-size:1.08rem}p{margin:.4rem 0 .85rem}.sub{color:var(--muted);max-width:850px;margin:0 0 18px}.source{font-size:.82rem;color:var(--muted)}
+.panel,.card,.screen,.decision{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.panel{padding:22px 24px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.flow{padding:12px;overflow-x:auto}.flow svg{display:block;width:100%;min-width:760px;height:auto}
+.node{fill:#fff;stroke:#cbdde1;stroke-width:2}.node-primary{fill:#e7f5f3;stroke:#7cbeb8}.node-end{fill:#e8f0fb;stroke:#91aaca}.node-pending{fill:#fff6df;stroke:#dfc17f}.flow-title{font-size:18px;font-weight:700;fill:#153447}.flow-label{font-size:13px;fill:#526a77}.arrow{stroke:#52808a;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.arrow-dash{stroke-dasharray:7 6}
+.journey{display:grid;gap:11px;counter-reset:step}.journey li{list-style:none;display:grid;grid-template-columns:38px 1fr;gap:12px;align-items:start}.journey li:before{counter-increment:step;content:counter(step);width:32px;height:32px;border-radius:50%;background:var(--aqua);color:var(--deep);font-weight:800;display:grid;place-items:center}
+ul,ol{padding-left:1.25rem}li{margin:.2rem 0}.criteria{list-style:none;padding:0;margin:.65rem 0 0}.criteria li{padding-left:1.6rem;position:relative;margin:.4rem 0}.criteria li:before{content:"";position:absolute;left:0;top:.35em;width:1rem;height:1rem;border:1.5px solid #79a6a8;border-radius:4px;background:#fff}
+details.screen{margin:11px 0;overflow:hidden}details.screen summary{cursor:pointer;list-style:none;padding:16px 20px;font-weight:730;color:var(--deep);display:flex;justify-content:space-between;gap:16px}details.screen summary::-webkit-details-marker{display:none}details.screen summary:after{content:"+";font-size:1.2rem;color:var(--blue)}details.screen[open] summary:after{content:"-"}details.screen[open] summary{border-bottom:1px solid var(--line)}.detail-body{padding:17px 20px 20px}.tag{display:inline-block;background:#eaf3f5;color:#275c6d;border-radius:999px;padding:2px 9px;font-size:.78rem;margin-left:7px;font-weight:650}
+.state-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.state{border-left:4px solid #72aeb0;padding:13px 15px;background:#fff;border-radius:8px}.state.warn{border-color:#d2a642;background:var(--gold-bg)}.state strong{display:block;color:var(--deep);margin-bottom:3px}
+.decision{padding:19px 21px}.decision h3{display:flex;align-items:center;gap:8px}.decision ul{margin:.6rem 0}
+footer{border-top:1px solid var(--line);margin-top:42px;padding-top:18px;color:var(--muted);font-size:.9rem}
+@media(max-width:700px){.wrap{padding:15px 14px 48px}header{border-radius:18px;padding:25px 21px}.grid,.state-grid{grid-template-columns:1fr}.panel{padding:17px}.flow{margin:0 -5px}nav{margin:16px 0 26px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div class="eyebrow">Product requirements ú Approved</div>
+<h1>CitizenWater</h1>
+<p>Report a treated-water problem, reach the closest available utility, and follow up until the citizen confirms it is fixed.</p>
+<div class="badges"><span class="badge">Phone-first PWA</span><span class="badge">No account required</span><span class="badge">Status: Approved</span><span class="badge">Email handoff</span></div>
+</header>
+
+<nav aria-label="Page sections">
+<a href="#journey">Journey</a><a href="#screens">Screens</a><a href="#behavior">Behavior</a><a href="#states">States</a><a href="#boundary">POC boundary</a><a href="#questions">Open questions</a>
+</nav>
+
+<section id="journey">
+<h2>The core journey</h2>
+<p class="sub">One report moves from a citizen's phone to a utility handoff and back to a citizen-verified status. Offline reports wait for the citizen's review; reconnecting never sends them automatically.</p>
+<div class="panel flow">
+<svg viewBox="0 0 1040 430" role="img" aria-labelledby="diagram-title diagram-desc">
+<title id="diagram-title">CitizenWater report and follow-up journey</title>
+<desc id="diagram-desc">Start at home, enable location, photograph the issue, let AI prepare a report and find the closest available utility, review and send by email, then follow up. Offline reports wait for reconnection and citizen review.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#52808a"/></marker></defs>
+<rect class="node node-primary" x="26" y="38" width="165" height="82" rx="14"/><text class="flow-title" x="45" y="72">Home</text><text class="flow-label" x="45" y="96">Start report</text>
+<rect class="node" x="231" y="38" width="180" height="82" rx="14"/><text class="flow-title" x="250" y="72">Enable location</text><text class="flow-label" x="250" y="96">Then take a photo</text>
+<rect class="node" x="451" y="38" width="190" height="82" rx="14"/><text class="flow-title" x="470" y="72">AI prepares</text><text class="flow-label" x="470" y="96">Description + utility</text>
+<rect class="node" x="681" y="38" width="160" height="82" rx="14"/><text class="flow-title" x="700" y="72">Review</text><text class="flow-label" x="700" y="96">Edit, then send</text>
+<rect class="node node-end" x="881" y="38" width="135" height="82" rx="14"/><text class="flow-title" x="897" y="72">Email</text><text class="flow-label" x="897" y="96">Await follow-up</text>
+<path class="arrow" d="M191 79 H224"/><path class="arrow" d="M411 79 H444"/><path class="arrow" d="M641 79 H674"/><path class="arrow" d="M841 79 H874"/>
+<rect class="node node-pending" x="452" y="192" width="188" height="78" rx="14"/><text class="flow-title" x="470" y="224">Offline: Pending</text><text class="flow-label" x="470" y="248">Save on this phone</text>
+<rect class="node node-pending" x="692" y="192" width="184" height="78" rx="14"/><text class="flow-title" x="711" y="224">Connection returns</text><text class="flow-label" x="711" y="248">Prompt citizen to review</text>
+<path class="arrow arrow-dash" d="M546 120 V184"/><path class="arrow arrow-dash" d="M640 231 H685"/><path class="arrow arrow-dash" d="M784 192 V151 H761 V128"/>
+<rect class="node" x="690" y="330" width="188" height="72" rx="14"/><text class="flow-title" x="710" y="361">Still open or fixed</text><text class="flow-label" x="710" y="385">Citizen checks location</text>
+<rect class="node node-end" x="888" y="330" width="128" height="72" rx="14"/><text class="flow-title" x="906" y="361">Archived</text><text class="flow-label" x="906" y="385">When fixed</text>
+<path class="arrow" d="M948 120 V322"/><path class="arrow" d="M878 366 H881"/>
+</svg>
+</div>
+<ol class="journey">
+<li><div><strong>Start without an account.</strong> Home offers Start a report, active reports, and access to the archive.</div></li>
+<li><div><strong>Enable location, then take a photo.</strong> CitizenWater explains why it needs current coordinates before asking for location access.</div></li>
+<li><div><strong>Analyze and route.</strong> AI drafts a concise description; location coordinates find the nearest available utility contact.</div></li>
+<li><div><strong>Review and send.</strong> The citizen checks the photo, description, location, utility, and email destination, then sends.</div></li>
+<li><div><strong>Follow up.</strong> The citizen later marks the issue Still open or Fixed. Fixed reports move to Archived.</div></li>
+</ol>
+</section>
+
+<section id="screens">
+<h2>Screens and layout</h2>
+<p class="sub">Open each surface to review its behavior and the evidence that will show it works.</p>
+<details class="screen" open>
+<summary>01 ú Home <span class="tag">No sign-in</span></summary>
+<div class="detail-body"><p>Put <strong>Start a report</strong> first. Show saved active reports with status labels and a clear way to view archived fixed reports. Reports stay available on the same phone.</p><ul class="criteria"><li>Home opens without account creation.</li><li>A citizen can begin a report and find saved reports by status.</li><li>Fixed reports appear in the archive.</li></ul></div>
+</details>
+<details class="screen">
+<summary>02 ú Location and photo</summary>
+<div class="detail-body"><p>Explain why current location is needed, request access, then provide a prominent phone-photo capture action. Save the current coordinates with the report.</p><ul class="criteria"><li>The location explanation appears before the permission request.</li><li>The report advances to utility matching only when coordinates are available.</li><li>The captured photo is visible in the report flow.</li><li>If access is off or denied, show why the feature is blocked and a retry path.</li></ul></div>
+</details>
+<details class="screen">
+<summary>03 ú AI analysis and nearest utility</summary>
+<div class="detail-body"><p>AI analyzes the photo and proposes a short description. CitizenWater uses the coordinates to find the closest available utility in the demo data. If no local match is listed, use the closest available contact even if far away; show its name and distance. If the data has no contact at all, keep the report unsent and explain why.</p><ul class="criteria"><li>The proposed description is editable.</li><li>Utility selection is based on the captured location and available utility locations.</li><li>A far match is visibly identified with its distance before the citizen sends.</li><li>No utility recipient is invented when the data has no contact.</li></ul></div>
+</details>
+<details class="screen">
+<summary>04 ú Review and email handoff</summary>
+<div class="detail-body"><p>Show photo, editable description, readable location, selected utility, distance, and email destination together. Let the citizen retake the photo, edit, and choose Send. After email handoff, show <strong>Awaiting follow-up</strong>; do not imply the utility has read or fixed the problem.</p><ul class="criteria"><li>The citizen can review the full report and recipient before sending.</li><li>The report is handed off through email only after the citizen chooses Send.</li><li>Confirmation shows Awaiting follow-up and distinguishes sending from a utility response.</li></ul></div>
+</details>
+<details class="screen">
+<summary>05 ú Pending report while offline</summary>
+<div class="detail-body"><p>If internet is unavailable, keep the photo and available report information as Pending on that phone. Resume AI analysis or utility lookup when connected, then prompt the citizen to review and send. Never auto-send on reconnection.</p><ul class="criteria"><li>A pending report remains visible after closing and reopening the app on the same phone.</li><li>When connected, the citizen is prompted to continue the report.</li><li>The citizen must review and explicitly send.</li></ul></div>
+</details>
+<details class="screen">
+<summary>06 ú Report follow-up and archive</summary>
+<div class="detail-body"><p>Reopen a submitted report to see the details and current status. After checking the location, the citizen marks it Still open or Fixed. For an open issue, they can wait or submit a follow-up report. A fixed report is highlighted and archived.</p><ul class="criteria"><li>The report details and status are available from Home.</li><li>The citizen can mark an issue Still open or Fixed.</li><li>A Still open report can remain active or lead to a follow-up.</li><li>A Fixed report appears in Archived.</li></ul></div>
+</details>
+</section>
+
+<section id="behavior">
+<h2>Look and feel</h2>
+<div class="panel"><p>A clear, dependable civic style: calm blues, a light background, strong contrast, readable text, and large controls that are easy to use outdoors. Avoid flashy AI-demo styling.</p><p class="source">Direction confirmed by the learner.</p></div>
+</section>
+
+<section id="states">
+<h2>States and boundaries</h2>
+<div class="state-grid">
+<div class="state"><strong>Location off or denied</strong>Explain that current location is needed to find a utility and offer a retry path.</div>
+<div class="state warn"><strong>No nearby utility</strong>Use the closest available utility in the demo data, show its distance, and let the citizen review it.</div>
+<div class="state warn"><strong>No utility contact data</strong>Keep the report unsent. Explain that no contact is available; never invent a recipient.</div>
+<div class="state"><strong>AI uncertain or unavailable</strong>Keep its description as a draft. Identify uncertainty where possible; allow correction or retry.</div>
+<div class="state warn"><strong>Offline before handoff</strong>Keep the report Pending on this phone. Prompt the citizen to continue once online; do not send automatically.</div>
+<div class="state"><strong>Handoff complete</strong>Show Awaiting follow-up, not a claim that the utility received or resolved the problem.</div>
+<div class="state"><strong>Issue fixed</strong>Highlight Fixed and move the report to Archived.</div>
+<div class="state"><strong>Persistence</strong>Reports remain available on the same phone. Cross-device sync is outside the POC.</div>
+</div>
+</section>
+
+<section id="boundary">
+<h2>Decisions and POC boundary</h2>
+<div class="grid">
+<div class="decision"><h3>Building now</h3><ul><li>Phone-first PWA report flow with no sign-in gate.</li><li>Required location, photo capture, AI draft, and nearest available utility match.</li><li>One email handoff, pending offline reports, and citizen-controlled follow-up.</li><li>Still open / Fixed statuses, with fixed reports archived.</li></ul></div>
+<div class="decision"><h3>Deferred</h3><ul><li>Worldwide utility data and multiple contact channels.</li><li>Calls, social posting, user accounts, and cross-device history.</li><li>Utility acknowledgements or proof of repair.</li><li>Apple App Store and Huawei AppGallery listings.</li></ul></div>
+</div>
+<p class="sub" style="margin-top:16px">The POC demonstrates one selected community using a limited utility-contact set. Store listings, a global directory, and proof that a utility received or fixed a report are not part of this build.</p>
+</section>
+
+<section id="questions">
+<h2>Decisions for the technical plan</h2>
+<div class="decision">
+<ul><li><strong>Demo area and utility contacts:</strong> choose a community and sample contact set to demonstrate nearest-utility selection before build.</li><li><strong>Email handoff:</strong> decide how the citizen's email send is completed and confirmed while avoiding any claim that the utility received it.</li><li><strong>Reconnect prompt:</strong> assess how the PWA can notify a citizen if it is closed; regardless, the pending report must be visible and ready to review when they return.</li></ul>
+</div>
+</section>
+
+<footer>
+<p><strong>CitizenWater PRD ú Approved</strong> - Markdown is the canonical plan. This visual companion works offline and uses only embedded styles, SVG, and native disclosure controls.</p>
+<p>Scope source: <a href="scope.md">approved CitizenWater scope</a>. Canonical PRD: <a href="prd.md">prd.md</a>.</p>
+</footer>
+</div>
+</body>
+</html>
