@@ -5,14 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b6270">
   <meta name="description" content="Report a water problem and follow it until it is fixed.">
+  <meta name="referrer" content="no-referrer">
   <title>CitizenWater — Report a water problem</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/citizenwater.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
-  <script type="module" src="/js/app.js"></script>
+  <script type="module" src="/js/app.js?v=14"></script>
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="/" aria-label="CitizenWater home"><span class="brand-mark" aria-hidden="true">💧</span><span>CitizenWater</span></a>
-    <span class="local-note"><span class="dot"></span> Saved on this device</span>
+    <span class="local-note"><span class="dot"></span> Saved in this browser</span>
   </header>
 
   <main class="layout">
@@ -21,7 +24,7 @@
       <h1 id="page-title">Small reports can help stop big waste.</h1>
       <p class="intro-copy">Photograph a water problem, review the details, and keep track of what happens next.</p>
       <button class="primary-button" id="start-report" type="button"><span aria-hidden="true">＋</span> Start a report</button>
-      <p class="privacy-note">No account needed. Your saved reports stay on this device.</p>
+      <p class="privacy-note">No account needed. Reports stay in this browser on this device.</p>
     </section>
 
     <section class="reports-section" aria-labelledby="reports-title">
@@ -42,19 +45,33 @@
   <dialog id="report-dialog" aria-labelledby="dialog-title">
     <form id="report-form" method="dialog">
       <div class="dialog-heading"><div><p class="eyebrow">New report</p><h2 id="dialog-title">Tell us what you noticed</h2></div><button class="icon-button" id="close-dialog" type="button" aria-label="Close">×</button></div>
-      <p class="permission-copy">We use your current location to suggest a nearby utility. It is saved with this report on your device.</p>
-      <div class="field"><div class="location-label"><label>Current location</label><button class="text-button" id="get-location" type="button">Get location</button></div><p id="location-status" class="field-hint">Location has not been requested.</p><input id="latitude" type="hidden"><input id="longitude" type="hidden"></div>
+      <p class="permission-copy">We use your current location to suggest a nearby utility. To show its place name, your coordinates are looked up by OpenStreetMap. The report is saved on this device.</p>
+      <div class="field"><div class="location-label"><label>Current location</label><button class="text-button" id="get-location" type="button">Get location</button></div><p id="location-status" class="field-hint">Location has not been requested.</p><p class="field-hint">Place names © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>.</p><input id="latitude" type="hidden"><input id="longitude" type="hidden"></div>
       <div class="field"><label for="photo">Photo of the problem</label><input id="photo" name="photo" type="file" accept="image/*" capture="environment" required><div class="photo-preview" id="photo-preview" hidden><img id="photo-image" alt="Preview of the selected water problem"><button type="button" class="text-button" id="change-photo">Choose a different photo</button></div></div>
-      <div class="field"><label for="description">What is happening?</label><textarea id="description" rows="3" maxlength="600" placeholder="For example: Water is flowing from a broken pipe beside the road."></textarea><span class="field-hint">You can edit this description before sending.</span></div>
+      <div class="field"><label for="description">What did you notice?</label><textarea id="description" rows="4" maxlength="600" placeholder="Describe what you saw, such as water flowing from a broken pipe beside the road." required></textarea><p class="field-hint">Write only what you observed. You can review and edit it before sending.</p></div>
       <div class="match-card" id="utility-match" hidden></div>
       <p class="form-error" id="form-error" role="alert" hidden></p>
       <div class="dialog-actions"><button class="secondary-button" id="cancel-report" type="button">Cancel</button><button class="primary-button" id="save-report" type="submit" disabled>Save report</button></div>
     </form>
   </dialog>
 
-  <dialog id="detail-dialog" aria-labelledby="detail-title"><div class="detail-content"><div class="dialog-heading"><div><p class="eyebrow">Report details</p><h2 id="detail-title">Your report</h2></div><button class="icon-button" id="close-detail" type="button" aria-label="Close">×</button></div><div id="detail-body"></div><div class="dialog-actions"><button class="secondary-button" id="delete-report" type="button">Delete report</button><button class="primary-button" id="mark-fixed" type="button">Mark as fixed</button></div></div></dialog>
+  <dialog id="detail-dialog" aria-labelledby="detail-title"><div class="detail-content"><div class="dialog-heading"><div><p class="eyebrow">Report details</p><h2 id="detail-title">Your report</h2></div><button class="icon-button" id="close-detail" type="button" aria-label="Close">×</button></div><div id="detail-body"></div><p id="submission-status" class="field-hint" role="status"></p><div class="dialog-actions"><button class="secondary-button" id="delete-report" type="button">Delete report</button><button class="secondary-button" id="create-follow-up" type="button">Create follow-up</button><button class="secondary-button" id="mark-still-open" type="button">Still open</button><button class="secondary-button" id="download-report-photo" type="button">Download photo to attach</button><button class="secondary-button" id="replace-report-photo" type="button">Replace photo</button><input id="replace-report-photo-input" type="file" accept="image/jpeg,image/png,image/webp" hidden><button class="secondary-button" id="copy-report-details" type="button">Copy report details</button><button class="secondary-button" id="submit-report" type="button">Open email app</button><button class="secondary-button" id="mark-email-sent" type="button">I sent the email</button><button class="primary-button" id="mark-fixed" type="button">Mark as fixed</button></div></div></dialog>
 
   <dialog id="archive-dialog" aria-labelledby="archive-title"><div class="dialog-heading"><div><p class="eyebrow">Resolved by you</p><h2 id="archive-title">Archived reports</h2></div><button class="icon-button" id="close-archive" type="button" aria-label="Close">×</button></div><div class="report-list" id="archive-list"></div><p id="archive-empty" class="field-hint">Fixed reports will appear here.</p></dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <main class="layout shared-report-view" id="shared-report-view" hidden>
+    <section class="intro shared-report-card" aria-labelledby="shared-report-title">
+      <p class="eyebrow">Private CitizenWater report</p>
+      <h1 id="shared-report-title">Loading report…</h1>
+      <p class="intro-copy" id="shared-report-status" role="status">Checking the secure report link.</p>
+      <div class="shared-report-content" id="shared-report-content" hidden>
+        <img class="detail-photo shared-photo" id="shared-report-photo" alt="Photo attached to this water problem report">
+        <p class="detail-copy" id="shared-report-description"></p>
+        <dl class="detail-facts" id="shared-report-facts"></dl>
+        <a class="text-button shared-map-link" id="shared-report-map" target="_blank" rel="noreferrer">View approximate location on a map ↗</a>
+        <p class="field-hint">This report was shared by a citizen. The location and utility suggestion are approximate; CitizenWater does not verify the email or repair.</p>
+      </div>
+    </section>
+  </main>
 </body>
 </html>

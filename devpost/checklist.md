@@ -9,25 +9,25 @@ Build mode: learn
 
 ## Slices
 
-- [ ] **1. Create and keep a water report on this phone**
+- [x] **1. Create and keep a water report on this phone**
   Becomes usable: A running, phone-sized app lets a citizen start without an account, explain why location is needed, take or select a photo, capture current coordinates, see a nearby entry from a clearly labeled sample utility directory with its distance, review/edit a report, and save it locally as pending.
   Why now: This puts the central report journey in a usable form early. The first slice includes project setup and the browser-to-local-storage path, so we can try the real flow before adding external services.
-  PRD ref: `prd.md > The Core Journey` (steps 1-5), `Screens and Layout`, `Features and Behavior > Location and photo`, `Features and Behavior > AI analysis and utility selection`
+  PRD ref: `prd.md > The Core Journey` (steps 1-5), `Screens and Layout`, `Features and Behavior > Location and photo`, `Features and Behavior > Description and utility selection`
   Spec ref: `spec.md > Technical decisions`, `Where it runs`, `Data flow` (steps 1-4), `Components and files`, `Local report record`, `States and recovery`, `Privacy and scope boundaries`
-  Build: Scaffold the vanilla HTML/CSS/JavaScript and Express project; create the responsive civic-style home and report/review screens; add a small visibly labeled demo utility directory for a community chosen with the learner; implement location/photo permission and recovery; match the nearest listed utility and show distance; save and reopen report/photo drafts in IndexedDB. Use manual description text until AI is added in slice 2.
+  Build: Scaffold the vanilla HTML/CSS/JavaScript and Express project; create the responsive civic-style home and report/review screens; add a small visibly labeled demo utility directory for a community chosen with the learner; implement location/photo permission and recovery; match the nearest listed utility and show distance; let the citizen write a short description; save and reopen the report/photo in IndexedDB.
   Verify (mechanical): Run the app and its health route; create a report with photo and location, reload the page, and confirm the pending report and image remain available; exercise denied-location and no-utility-contact states and confirm the app never fabricates coordinates or a recipient.
   Learner check: On the running app, start a report, check its photo, location, suggested utility and distance, save it, reload, and tell me what was clear or confusing.
   Commit: `Build local water report flow`
 
-- [ ] **2. Review an AI draft and send the report by email**
-  Becomes usable: A citizen can request an AI-written description, edit it, inspect the photo/location/destination together, then explicitly send and see whether the provider accepted the email or the result is failed/unknown.
-  Why now: Once a locally saved report works, this adds the external handoff while preserving a citizen review and clear outcome states.
-  PRD ref: `prd.md > The Core Journey` (steps 4-6), `Features and Behavior > AI analysis and utility selection`, `Features and Behavior > Review and email handoff`, `States and Boundaries`
-  Spec ref: `spec.md > Technical decisions`, `Data flow` (steps 3-6), `API contracts`, `Components and files`, `States and recovery`, `Privacy and scope boundaries`
-  Build: Add Express analysis and email routes, OpenAI and Resend services, server-side environment configuration and safe validation/errors; let the citizen generate/retry/edit an AI description; build the review/send confirmation flow and preserve pending reports on clear or uncertain failures. Use labeled test contacts and a verified sender/test recipient.
-  Verify (mechanical): Run the server and health route; with configured credentials, submit a sample image to analysis and confirm editable text returns, then send a reviewed report to the configured test recipient and confirm the UI distinguishes provider acceptance from utility receipt. Confirm missing configuration produces a safe error and leaves the report saved.
-  Learner check: Review an AI description, change it, inspect the destination, and send only to the agreed test recipient; tell me whether the result states were understandable.
-  Commit: `Add reviewed AI and email handoff`
+- [ ] **2. Send a report from the citizen's email app**
+  Becomes usable: A citizen writes and edits a description, inspects the photo/location/destination together, then opens a draft addressed to the listed utility with report details, a map link, and a private link to the cloud-hosted report and photo. If cloud sharing is unavailable, the citizen can attach the downloaded photo instead.
+  Why now: The citizen asked to share a particular report link with the utility. Supabase is now the hosted copy for that handoff, while IndexedDB remains the offline copy and email stays user-controlled.
+  PRD ref: `prd.md > The Core Journey` (steps 4-6), `Features and Behavior > Description and utility selection`, `Features and Behavior > Review and email handoff`, `States and Boundaries`
+  Spec ref: `spec.md > Technical decisions`, `Data flow` (steps 3-5), `API contracts`, `Components and files`, `States and recovery`, `Privacy and scope boundaries`
+  Build: Keep reports/photos in IndexedDB for offline use. On email handoff, upload through Express to the private Supabase bucket, save the report row using the server-only service key, create a 30-day random-token link (store only its hash in the database), and send that link in the citizen's `mailto:` draft. Verify tokens before displaying a read-only shared report with a five-minute signed photo URL. Sync status changes and deletion using the local token; retain download/copy fallback. Never expose the server key in frontend code.
+  Verify (mechanical): Run the app and health route; inspect the SQL grant, server-only environment loading, generated email link, private bucket upload, expiring-token lookup, signed photo URL, and token-protected status/delete endpoints. Confirm no AI/email-provider dependency or API credential remains in frontend code; opening a draft alone must not mark a report sent.
+  Learner check: After adding Supabase URL/key/bucket to local `.env` and running the supplied service-role grant SQL, create a report, open the email draft, then open the private link in a separate browser and check its report and photo. Confirm the link expires as shown; cancel the email without sending and check the report stays pending.
+  Commit: `Open reviewed reports in citizen email app`
 
 - [ ] **3. Continue pending reports and close the follow-up loop**
   Becomes usable: A report saved offline remains on the phone, is surfaced when the app is open again online, and requires the citizen to review and send; submitted reports can be marked still open or fixed and fixed reports appear in the archive.
@@ -51,7 +51,7 @@ Build mode: learn
 
 ## Hands-on Checkpoints
 
-- [ ] Early usable behavior explored — after slice 1, try the locally saved report flow and review the Crown Gardens sample utility match before external-service work.
+- [x] Early usable behavior explored — the learner reloaded the app in Firefox and confirmed it was working before external-service work.
 - [ ] Final kick-the-tires exploration and feedback completed — after slice 4, try the completed journey on the HTTPS phone preview.
 
 ## Final Review
@@ -72,5 +72,10 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 
 ## Revisions
 
+- Three earlier pending reports did not appear in the Codex in-app browser. Reports use browser-local IndexedDB, so check them in the original Firefox profile; the app now labels this storage as browser-local. On 2026-10-15 the learner confirmed the app was working in Firefox, completing the slice 1 hands-on check.
+- Product decision on 2026-10-15: remove AI drafting because the ongoing model cost is unaffordable. Citizens write their own descriptions; the app no longer calls or depends on an AI model.
+- Product decision on 2026-10-15: use the citizen's own email app instead of a paid email provider API. The app opens a prefilled draft and downloads the photo for manual attachment; only the citizen can mark it sent.
+- Product decision on 2026-10-16: add Supabase cloud storage for reports/photos when a citizen opens an email draft, with a private read-only expiring link. Keep IndexedDB for offline and local follow-up. The app's Express server uses a server-only key; no anonymous table or bucket policies are added.
+- Offline startup now loads saved reports even when API configuration or the utility directory is unavailable. On reconnection, pending reports without a utility are matched to the sample directory for review; they are never sent automatically. The service worker caches only the explicit app-shell asset list, not API responses or reports.
 - The learner's Firefox location request did not respond; use faster-accuracy coordinates, a 30-second browser timeout, and a 32-second watchdog with Firefox/Windows recovery guidance. The learner still needs to reload and retry in Firefox.
 - The available system runtime is Node 20.18.0 although the approved spec targets Node 24; Express installed and the server started under Node 20, but final verification should also run under Node 24.

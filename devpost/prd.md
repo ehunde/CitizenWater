@@ -13,9 +13,9 @@ Source: `scope.md > The Unique Kernel`, `Who It's For`, and `The Core Loop`.
 1. **Open CitizenWater.** The home screen is available without creating an account. It offers **Start a report**, shows active reports and their statuses, and provides access to archived fixed reports.
 2. **Start a report.** CitizenWater explains that location is needed to identify a utility. The citizen enables location access before continuing.
 3. **Capture the problem.** The citizen takes a photo of the water problem. CitizenWater captures the phone's current coordinates with the report.
-4. **Analyze and route.** AI analyzes the photo and creates a short description. Using the coordinates, CitizenWater identifies the nearest available utility contact. If no utility in the immediate area is listed, it selects the closest available one, even if far away, and shows its name and distance.
-5. **Review the report.** The citizen sees the photo, location, AI description, selected utility, and email contact. They can edit the description or retake the photo, then choose whether to send.
-6. **Hand off or wait.** When online, the citizen sends the report by email. CitizenWater confirms the handoff and marks it **Awaiting follow-up**; it does not imply the utility has read or resolved it. If the citizen is offline, the report remains **Pending** on that phone. When connection returns, CitizenWater reminds them; they review and send the report themselves.
+4. **Write and route.** The citizen writes a short description of what they observed. Using the coordinates, CitizenWater identifies the nearest available utility contact. If no utility in the immediate area is listed, it selects the closest available one, even if far away, and shows its name and distance.
+5. **Review the report.** The citizen sees the photo, location, their description, selected utility, and listed email address. They can edit the description, download the photo, and copy report details. Choosing **Open email app** saves the report and photo through the server to Supabase, then opens a draft addressed to the listed contact with the report text, map link, and private report link. The link expires after 30 days. If cloud sharing is unavailable, the citizen can attach the downloaded photo instead.
+6. **Hand off or wait.** The citizen taps Send in their own email app, returns to CitizenWater, and can mark the report sent. CitizenWater cannot verify sending or delivery. If the citizen is offline, the report remains **Pending** on that phone. When connection returns, CitizenWater reminds them; they review and send the report themselves.
 7. **Follow up.** Later, the citizen opens the report after checking the location and marks it **Still open** or **Fixed**. If it is still open, they can wait or send a follow-up report. A fixed report is highlighted as fixed and moved to **Archived**.
 
 Source: `scope.md > The Core Loop`, `What "Working" Looks Like`, and `The POC Boundary`.
@@ -24,12 +24,12 @@ Source: `scope.md > The Core Loop`, `What "Working" Looks Like`, and `The POC Bo
 
 - **Home:** A clear **Start a report** action, active reports with status labels, and access to archived reports. No sign-in gate.
 - **Location and photo:** A brief explanation of why location is needed, followed by the location permission step and photo capture. Keep the capture action prominent.
-- **Review report:** Photo preview, editable AI description, readable location, selected utility and its distance, and the email destination. The citizen can retake the photo, edit the description, or send.
+- **Review report:** Photo preview, citizen-written description, readable location, selected utility and its distance, and the email destination. The citizen can download the photo, copy report details, or open a prefilled email draft. The email includes a private link to the report and photo when Supabase is available.
 - **Report detail:** The submitted report and its current status, with an action to update it after checking the location. Fixed reports appear in the archive.
 
 ## Look and Feel
 
-Use a clear, dependable civic style: calm blues, a light background, strong contrast, readable text, and large controls that are easy to use outdoors. Avoid flashy AI-demo styling.
+Use a clear, dependable civic style: calm blues, a light background, strong contrast, readable text, and large controls that are easy to use outdoors. Avoid flashy styling.
 Decision confirmed by the learner during the product interview.
 
 ## Features and Behavior
@@ -62,35 +62,37 @@ Acceptance criteria:
 - [ ] The citizen can take a photo and see that photo in the report flow.
 - [ ] If location access is unavailable, the app explains the issue and offers a retry path.
 
-### AI analysis and utility selection
+### Description and utility selection
 Source: `scope.md > The Core Loop` and `The POC Boundary`.
 
-- AI analyzes the photo and proposes a concise description for the citizen to review.
+- The citizen writes a concise description of what they observed. CitizenWater does not send the photo to an AI service or generate text.
 - CitizenWater uses the captured coordinates to find the nearest available utility in the selected demo area's utility data.
 - If there is no nearby listed utility, select the closest available utility even if it is far away. Show the utility name and distance so the citizen can review the match.
 - If the available data contains no utility contact at all, do not invent a recipient; explain that no contact is available and keep the report unsent.
-- Make uncertainty in the AI description visible; the citizen can correct the text.
 
 Acceptance criteria:
 
-- [ ] The review screen shows a short AI-generated problem description.
+- [ ] The citizen can enter and edit a short problem description.
 - [ ] The utility match is based on the report's coordinates and available utility locations.
 - [ ] When the selected utility is far away, its name and distance are shown before sending.
-- [ ] The citizen can correct an AI description before sending.
 - [ ] No recipient is fabricated when utility contact data is unavailable.
 
 ### Review and email handoff
 Source: `scope.md > The Core Loop` and `What "Working" Looks Like`.
 
 - Before sending, show the photo, description, location, selected utility, and email destination together.
-- The citizen can edit the description or retake the photo before sending.
+- The citizen can edit the description, download the photo as a fallback, or copy report details before sending.
+- When the citizen opens an email draft, CitizenWater stores the report and photo in Supabase through its Express server. The email includes the listed recipient, report details, approximate location, a map link, and a private report link. The citizen reviews and taps Send in their own email app.
+- The private link uses a 256-bit random bearer token. The originating browser keeps the raw token with its local report; Supabase stores only its SHA-256 hash. The link expires after 30 days. A server verifies it before returning report details and a five-minute signed URL for the private photo.
+- The app uses the Supabase service-role key only on the server. It grants no anonymous table or storage access. Reports remain in IndexedDB for the citizen's follow-up; the shared page is read-only.
 - Email is the one contact path in the proof of concept. Calls and social media are deferred.
-- After the handoff, show the report as **Awaiting follow-up**. Do not claim the utility received, read, or acted on it.
+- The citizen marks the report sent after returning from their email app. Show **Awaiting follow-up**, and explain CitizenWater cannot verify sending, delivery, reading, or action.
 
 Acceptance criteria:
 
 - [ ] The citizen can inspect the report and destination before sending.
-- [ ] The citizen's action sends the report by the selected email path.
+- [ ] The citizen can open a draft addressed to the listed utility with report details and a map link.
+- [ ] The email can include a private report link and photo; if cloud sharing is unavailable, the citizen can download and attach the photo instead.
 - [ ] After handoff, the report appears as **Awaiting follow-up** on the home screen and report detail.
 - [ ] The confirmation distinguishes a sent report from a utility response.
 
@@ -99,7 +101,7 @@ Source: `scope.md > The Core Loop` and `What "Working" Looks Like`.
 
 - If the citizen loses internet before the email handoff, keep the photo and available report information as **Pending** on that phone.
 - Do not send automatically when connection returns. Remind the citizen that the report is ready, then let them review and send it.
-- If analysis or utility matching could not finish offline, resume those steps after connection returns, then show the review screen.
+- If utility matching could not finish offline, resume that step after connection returns, then show the review screen.
 
 Acceptance criteria:
 
@@ -129,9 +131,10 @@ Acceptance criteria:
 - **Location off or denied:** Explain that current location is needed to find a utility; allow retry after the citizen enables it.
 - **No nearby utility:** Use the closest available utility from the demo data, show its distance, and let the citizen review it.
 - **No utility contact data:** Keep the report unsent and explain that no contact is available; never invent a recipient.
-- **AI uncertainty or failure:** Show the proposed text as a draft, identify uncertainty where possible, and let the citizen edit or retry. Never send without citizen review.
+- **Email app unavailable:** Keep the report pending and let the citizen copy the listed address and report details into an email provider.
+- **Description:** The citizen enters and reviews their own description. No model service is called.
 - **Offline before handoff:** Keep the report pending on the same phone and prompt the citizen when it is ready to continue.
-- **Handoff complete:** Show **Awaiting follow-up**, not a claim that the utility received or resolved the problem.
+- **Citizen marks sent:** Show **Awaiting follow-up**, and clarify CitizenWater cannot verify the email was sent, received, or read.
 - **Fixed:** Mark the report fixed and move it to the archive.
 - **Persistence:** Reports are available on the same phone for later follow-up. Cross-device sync is not included.
 
@@ -139,8 +142,8 @@ Acceptance criteria:
 
 - No mandatory login or registration for the proof of concept; a citizen can start reporting immediately.
 - Request location when a report begins, explain why it is needed, and get location before photo capture.
-- AI drafts the report; the citizen reviews and can edit it before sending.
-- Email is the single contact method for the proof of concept.
+- The citizen writes and reviews the report description before sending; no AI service or model API is used.
+- Email is the single contact method for the proof of concept. CitizenWater opens the citizen's email app and does not use an email provider API.
 - If the nearest local utility is unavailable, use the closest available utility and show its distance for review.
 - Offline reports stay pending and require the citizen to review and send after connection returns.
 - Citizens mark issues **Still open** or **Fixed** after checking the location; fixed reports are archived.
@@ -148,13 +151,13 @@ Acceptance criteria:
 
 ## What We're Building
 
-One phone-first PWA flow: start without an account, enable location, photograph a treated-water issue, receive an AI description and closest available utility match, review and send by email, keep an unsent report pending through an offline period, and let the citizen update its status later.
+One phone-first PWA flow: start without an account, enable location, photograph a treated-water issue, write a description and see the closest available utility match, review the report, create a private expiring report link through Supabase, open and send a prefilled email from the citizen's email app, keep an unsent report pending through an offline period, and let the citizen update its status later.
 
 ## Deferred From the POC
 
 - Worldwide utility and contact coverage; the demo uses a selected area and a limited set of utility contacts.
 - Calls and social-media posting; email is the first contact path.
-- Accounts, identity profiles, and access to reports across devices.
+- Accounts, identity profiles, and a cross-device report inbox. A private share link lets a recipient view one shared report only.
 - Utility-side accounts, acknowledgements, repair updates, and proof that a report was received or fixed.
 - Publishing native app listings in the Apple App Store or Huawei AppGallery; the POC focuses on the PWA experience.
 
@@ -175,5 +178,5 @@ One phone-first PWA flow: start without an account, enable location, photograph 
 ## Open Questions
 
 - Which demo community and sample utility contacts will be used? **Resolved during build:** Crown Gardens, Johannesburg, with a labeled approximate routing point and Johannesburg Water's published water-fault contact. The point does not establish jurisdiction.
-- How the email handoff is completed and confirmed in the PWA. **Must be settled during `4-spec` before build**, while keeping the citizen in control and avoiding a false claim of utility receipt.
+- How the email handoff is completed and confirmed in the PWA. **Resolved during build:** open the citizen's configured email app with a prefilled draft and private report link; when Supabase is unavailable, the citizen attaches the downloaded photo. The citizen can mark it sent on return. CitizenWater cannot verify delivery.
 - How the PWA reminds the citizen if the app is closed when connectivity returns. **Can be assessed during `4-spec`**; the product requirement is to make the pending report visible and prompt the citizen to review and send it when online.

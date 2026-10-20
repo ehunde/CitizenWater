@@ -1,4 +1,4 @@
-import { captureLocation } from './location.js';
+import { captureLocation, reverseGeocode } from './location.js';
 import { deleteReport, getReports, saveReport } from './storage.js';
 import { nearestUtility } from './utility-matcher.js';
 
@@ -8,6 +8,7 @@ const reportForm = $('#report-form');
 const detailDialog = $('#detail-dialog');
 const archiveDialog = $('#archive-dialog');
 const photoInput = $('#photo');
+const replacePhotoInput = $('#replace-report-photo-input');
 const descriptionInput = $('#description');
 const saveButton = $('#save-report');
 const locationStatus = $('#location-status');
@@ -22,7 +23,10 @@ const objectUrls = new Map();
 let currentLocation = null;
 let selectedUtility = null;
 let openReport = null;
+let followUpOfId = null;
 let utilities = [];
+let utilityDirectoryAvailable = false;
+let sharedMode = false;
 let toastTimer;
 
 function dateLabel(iso) {
@@ -53,9 +57,11 @@ function updateMatch() {
     utilityCard.replaceChildren();
     if (currentLocation) {
       const title = document.createElement('strong');
-      title.textContent = 'No utility contact is listed';
+      title.textContent = utilityDirectoryAvailable ? 'No utility contact is listed' : 'Utility list is unavailable right now';
       const detail = document.createElement('span');
-      detail.textContent = 'The report can be saved on this device, but no email destination is available. We will not guess one.';
+      detail.textContent = utilityDirectoryAvailable
+        ? 'The report can be saved on this device, but no email destination is available. We will not guess one.'
+        : 'Save the report on this device and reconnect to find a listed utility. No destination will be guessed.';
       utilityCard.append(title, detail);
     }
     return;
@@ -98,11 +104,11 @@ function makeReportCard(report) {
   title.textContent = report.description || 'Water problem report';
   const meta = document.createElement('p');
   meta.className = 'report-meta';
-  const utility = utilities.find((item) => item.id === report.utilityId);
-  meta.textContent = `${dateLabel(report.createdAt)}${utility ? ` · ${utility.name}` : ''}`;
+  const utility = utilities.find((item) => item.id === report.utilityId) || report.utilitySnapshot;
+  meta.textContent = `${dateLabel(report.createdAt)}${utility ? ` · ${utility.name}` : ''}${report.linkedToReportId ? ' · Follow-up' : ''}`;
   const status = document.createElement('span');
   status.className = 'status-pill';
-  status.textContent = report.status === 'fixed' ? 'Fixed' : 'Pending';
+  status.textContent = report.status === 'fixed' ? 'Fixed' : report.status === 'submitted' ? 'Awaiting follow-up' : report.status === 'unknown' ? 'Pending email handoff' : 'Pending';
   content.append(title, meta);
   card.append(img, content, status);
   const open = () => showReport(report);
@@ -123,10 +129,37 @@ async function refreshReports() {
   $('#active-count').textContent = String(active.length);
   $('#empty-state').hidden = active.length > 0;
   $('#archive-empty').hidden = archived.length > 0;
-  const waiting = active.filter((report) => report.status === 'pending').length;
+  const waiting = active.filter((report) => report.status === 'pending' || report.status === 'unknown').length;
   const notice = $('#online-notice');
-  notice.hidden = !(navigator.onLine && waiting > 0);
-  notice.textContent = waiting ? `${waiting} saved report${waiting === 1 ? ' is' : 's are'} waiting for you to review. Nothing is sent automatically.` : '';
+  notice.hidden = navigator.onLine && waiting === 0;
+  notice.textContent = !navigator.onLine
+    ? 'You are offline. Reports stay saved in this browser; email is unavailable until you reconnect.'
+    : waiting ? `${waiting} saved report${waiting === 1 ? ' is' : 's are'} waiting for you to review. Nothing is sent automatically.` : '';
+}
+
+async function loadUtilityDirectory() {
+  const response = await fetch('/api/utilities');
+  if (!response.ok) throw new Error('Utility list could not be loaded.');
+  utilities = await response.json();
+  utilityDirectoryAvailable = true;
+
+  // Reports saved while offline can be matched once the sample directory is available again.
+  const reports = await getReports();
+  for (const report of reports) {
+    if ((report.status !== 'pending' && report.status !== 'unknown') || report.utilityId ||
+        !Number.isFinite(report.latitude) || !Number.isFinite(report.longitude)) continue;
+    const utility = nearestUtility(report, utilities);
+    if (!utility) continue;
+    report.utilityId = utility.id;
+    report.recipientEmail = utility.email || null;
+    report.utilitySnapshot = {
+      name: utility.name,
+      serviceArea: utility.serviceArea,
+      email: utility.email || null,
+      directoryLabel: utility.directoryLabel
+    };
+    await saveReport(report);
+  }
 }
 
 function showReport(report) {
@@ -140,18 +173,41 @@ function showReport(report) {
     img.src = imageUrl(report);
     body.append(img);
   }
-  const copy = document.createElement('p');
-  copy.className = 'detail-copy';
-  copy.textContent = report.description || 'No description added.';
+  if (report.status === 'pending' || report.status === 'unknown') {
+    const label = document.createElement('label');
+    label.htmlFor = 'detail-description';
+    label.textContent = 'Review or edit the report';
+    const edit = document.createElement('textarea');
+    edit.id = 'detail-description';
+    edit.rows = 4;
+    edit.maxLength = 600;
+    edit.value = report.description || '';
+    edit.required = true;
+    edit.placeholder = 'Describe what you noticed.';
+    edit.addEventListener('change', async () => {
+      report.description = edit.value.trim();
+      await saveReport(report);
+    });
+    body.append(label, edit);
+  } else {
+    const copy = document.createElement('p');
+    copy.className = 'detail-copy';
+    copy.textContent = report.description || 'No description added.';
+    body.append(copy);
+  }
   const facts = document.createElement('dl');
   facts.className = 'detail-facts';
-  const utility = utilities.find((item) => item.id === report.utilityId);
+  const utility = utilities.find((item) => item.id === report.utilityId) || report.utilitySnapshot;
   const fields = [
     ['Saved', dateLabel(report.createdAt)],
-    ['Status', report.status === 'fixed' ? 'Marked fixed by you' : report.status === 'submitted' ? 'Awaiting follow-up' : 'Pending on this device'],
-    ['Location', Number.isFinite(report.latitude) && Number.isFinite(report.longitude) ? `${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}` : 'Not captured'],
+    ['Status', report.status === 'fixed' ? 'Marked fixed by you' : report.status === 'submitted' ? 'Awaiting follow-up' : report.status === 'unknown' ? 'Pending; email handoff was not confirmed' : 'Pending on this device'],
+    ['Latest check', report.lastCheckedAt ? `${report.resolutionNote || 'Still open when checked by you'} · ${dateLabel(report.lastCheckedAt)}` : 'No follow-up check recorded'],
+    ['Location', Number.isFinite(report.latitude) && Number.isFinite(report.longitude) ? `${report.locationName ? `${report.locationName} · ` : ''}${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}` : 'Not captured'],
     ['Utility', utility?.name || 'No listed contact'],
-    ['Email', utility?.email || 'Not available']
+    ...(utility?.serviceArea ? [['Sample service area', utility.serviceArea]] : []),
+    ['Email destination', utility?.email || 'Not available'],
+    ['Contact note', utility?.directoryLabel || 'Check that this listed contact serves the location.'],
+    ...(report.linkedToReportId ? [['Follow-up', 'This report follows an earlier report on this device.']] : [])
   ];
   for (const [label, value] of fields) {
     const row = document.createElement('div');
@@ -164,15 +220,41 @@ function showReport(report) {
   }
   const note = document.createElement('p');
   note.className = 'field-hint';
-  note.textContent = report.status === 'fixed' ? 'This status is your update; the app has not independently verified the repair.' : 'This report is saved only on this device. It has not been sent to the utility.';
-  body.append(copy, facts, note);
-  $('#mark-fixed').hidden = report.status === 'pending' || report.status === 'fixed';
+  note.id = 'report-storage-note';
+  note.textContent = report.status === 'fixed'
+    ? 'This status is your update; the app has not independently verified the repair.'
+    : report.status === 'submitted'
+      ? report.handoffMethod === 'email-app'
+        ? 'You marked the email as sent. CitizenWater cannot confirm delivery or whether the utility read it.'
+        : 'This report is marked as sent. CitizenWater cannot confirm delivery or whether the utility read it.'
+      : report.shareUrl
+        ? 'This report and photo are stored in Supabase behind a private link. CitizenWater will open an email draft for you; it will not send automatically.'
+        : 'This report is saved only in this browser. CitizenWater will open an email draft for you; it will not send automatically.';
+  body.append(facts, note);
+  $('#mark-fixed').hidden = report.status !== 'submitted';
+  $('#mark-still-open').hidden = report.status !== 'submitted';
+  $('#create-follow-up').hidden = report.status !== 'submitted';
+  $('#submit-report').hidden = report.status !== 'pending' && report.status !== 'unknown';
+  $('#submit-report').disabled = !utility?.email;
+  $('#download-report-photo').hidden = (report.status !== 'pending' && report.status !== 'unknown') || !report.photo;
+  $('#replace-report-photo').hidden = (report.status !== 'pending' && report.status !== 'unknown') || !report.photo;
+  $('#copy-report-details').hidden = report.status !== 'pending' && report.status !== 'unknown';
+  $('#mark-email-sent').hidden = (report.status !== 'pending' && report.status !== 'unknown') || !report.emailDraftOpenedAt;
+  $('#submission-status').textContent = report.status === 'submitted'
+    ? 'Marked as sent. Check back after contacting the utility; this app receives no reply automatically.'
+    : !utility?.email
+      ? 'No utility email is listed. This report stays pending here; CitizenWater will not invent a destination.'
+      : report.emailDraftOpenedAt
+        ? 'Email draft opened. Attach the downloaded photo, review the recipient and message, then tap Send in your email app. Return here and choose “I sent the email” to track follow-up.'
+        : 'Open a draft addressed to the listed utility. You will review and send it yourself; nothing is sent automatically.';
   $('#delete-report').textContent = report.status === 'pending' ? 'Delete report' : 'Delete report';
   detailDialog.showModal();
 }
 
 function resetForm() {
   reportForm.reset();
+  followUpOfId = null;
+  $('#dialog-title').textContent = 'Tell us what you noticed';
   currentLocation = null;
   selectedUtility = null;
   photoPreview.hidden = true;
@@ -195,7 +277,14 @@ async function requestLocation() {
     currentLocation = await captureLocation();
     $('#latitude').value = String(currentLocation.latitude);
     $('#longitude').value = String(currentLocation.longitude);
-    locationStatus.textContent = `Location ready · ${currentLocation.latitude.toFixed(5)}, ${currentLocation.longitude.toFixed(5)}`;
+    locationStatus.textContent = `Coordinates found · ${currentLocation.latitude.toFixed(5)}, ${currentLocation.longitude.toFixed(5)} · Finding place name…`;
+    try {
+      currentLocation.locationName = await reverseGeocode(currentLocation);
+      locationStatus.textContent = `${currentLocation.locationName} · ${currentLocation.latitude.toFixed(5)}, ${currentLocation.longitude.toFixed(5)}`;
+    } catch (error) {
+      locationStatus.textContent = `Place name unavailable · ${currentLocation.latitude.toFixed(5)}, ${currentLocation.longitude.toFixed(5)}`;
+      console.warn('Could not look up the location name:', error);
+    }
     updateMatch();
   } catch (error) {
     currentLocation = null;
@@ -208,6 +297,266 @@ async function requestLocation() {
   }
 }
 
+function reportEmailBody(report, utility, shareLink = '') {
+  const location = Number.isFinite(report.latitude) && Number.isFinite(report.longitude)
+    ? `${report.locationName ? `${report.locationName} · ` : ''}${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}`
+    : 'Not captured';
+  const mapLink = Number.isFinite(report.latitude) && Number.isFinite(report.longitude)
+    ? `https://www.openstreetmap.org/?mlat=${report.latitude}&mlon=${report.longitude}#map=16/${report.latitude}/${report.longitude}`
+    : 'Not available';
+  const photoName = report.photo ? `citizenwater-${String(report.id).slice(0, 8)}.${(report.photoMimeType || report.photo.type || 'image/jpeg').split('/')[1].replace('jpeg', 'jpg')}` : 'No photo attached';
+  return [
+    'Water problem report',
+    '',
+    `Description: ${report.description || ''}`,
+    `Location: ${location}`,
+    `Map: ${mapLink}`,
+    `Suggested utility: ${utility?.name || 'Not available'}`,
+    `Service area: ${utility?.serviceArea || 'Not available'}`,
+    ...(shareLink ? [`Private report and photo: ${shareLink}`, `This private link expires ${dateLabel(report.shareExpiresAt)}.`] : [`Photo to attach: ${photoName}`]),
+    '',
+    'The location and utility match are approximate. Please verify the details.'
+  ].join('\n');
+}
+
+async function fileAsBase64(file) {
+  if (!file || typeof file.arrayBuffer !== 'function') {
+    throw new Error('The saved photo data is unavailable. Re-select the original photo before trying again.');
+  }
+  let bytes;
+  try {
+    bytes = new Uint8Array(await file.arrayBuffer());
+  } catch {
+    throw new Error('Firefox could not read the saved photo file. Re-select the original photo before trying again.');
+  }
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function preparePrivateShare(report) {
+  if (!report.photo) return null;
+  let step = 'checking the internet connection';
+  try {
+    if (!navigator.onLine) throw new Error('The device appears to be offline.');
+    if (!report.shareToken) {
+      step = 'creating a private link token';
+      const bytes = crypto.getRandomValues(new Uint8Array(32));
+      report.shareToken = [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    step = 'reading the photo for upload';
+    const photoBase64 = await fileAsBase64(report.photo);
+    const payload = {
+      id: report.id,
+      createdAt: report.createdAt,
+      status: report.status,
+      description: report.description,
+      latitude: report.latitude,
+      longitude: report.longitude,
+      locationName: report.locationName || null,
+      locationCapturedAt: report.locationCapturedAt || null,
+      photoMimeType: report.photoMimeType || report.photo.type || 'image/jpeg',
+      photoBase64,
+      utilityId: report.utilityId || null,
+      recipientEmail: report.recipientEmail || null,
+      utilitySnapshot: report.utilitySnapshot || null,
+      linkedToReportId: report.linkedToReportId || null,
+      emailDraftOpenedAt: report.emailDraftOpenedAt || null,
+      handoffMethod: report.handoffMethod || null,
+      submittedAt: report.submittedAt || null,
+      lastCheckedAt: report.lastCheckedAt || null,
+      fixedAt: report.fixedAt || null,
+      resolutionNote: report.resolutionNote || null
+    };
+
+    step = 'sending the report and photo to the CitizenWater server';
+    const response = await fetch('/api/reports/share', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${report.shareToken}`
+      },
+      body: JSON.stringify(payload)
+    });
+    step = 'reading the server response';
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || `The server returned HTTP ${response.status}.`);
+    report.shareToken = result.token;
+    report.shareUrl = result.url;
+    report.shareExpiresAt = result.expiresAt;
+    step = 'saving the private link in this browser';
+    let localSaveWarning = '';
+    try {
+      await saveReport(report);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'the browser gave no error details';
+      localSaveWarning = `The private link was created, but this browser could not save it for future updates (${reason}).`;
+      console.warn('Cloud report link could not be saved locally:', error);
+    }
+    return { url: result.url, warning: localSaveWarning };
+  } catch (error) {
+    const reason = error instanceof Error
+      ? error.message
+      : error == null
+        ? 'the browser provided no error details'
+        : String(error);
+    throw new Error(`Private report sharing failed while ${step}: ${reason}`);
+  }
+}
+
+async function syncCloudStatus(report) {
+  if (!report.shareToken) return true;
+  const response = await fetch(`/api/reports/${encodeURIComponent(report.id)}/status`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${report.shareToken}` },
+    body: JSON.stringify({
+      status: report.status,
+      submittedAt: report.submittedAt || null,
+      lastCheckedAt: report.lastCheckedAt || null,
+      fixedAt: report.fixedAt || null,
+      resolutionNote: report.resolutionNote || null,
+      handoffMethod: report.handoffMethod || null
+    })
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result.error || 'The cloud report could not be updated.');
+  }
+  return true;
+}
+
+async function openEmailDraft() {
+  if (!openReport) return;
+  const utility = utilities.find((item) => item.id === openReport.utilityId) || openReport.utilitySnapshot;
+  if (!utility?.email) {
+    $('#submission-status').textContent = 'No listed utility email is available. The report remains saved here.';
+    return;
+  }
+  const editor = $('#detail-description');
+  const description = editor ? editor.value.trim() : openReport.description;
+  if (!description) {
+    $('#submission-status').textContent = 'Add a description before opening an email draft.';
+    return;
+  }
+  const emailTab = window.open('about:blank', '_blank');
+  if (!emailTab) {
+    $('#submission-status').textContent = 'Firefox blocked the email tab. Allow pop-ups for this app, then try again.';
+    return;
+  }
+  $('#submission-status').textContent = 'Preparing the report and its private photo link. Keep this report open to see the result.';
+  openReport.description = description;
+  openReport.emailDraftOpenedAt = new Date().toISOString();
+  try {
+    await saveReport(openReport);
+    let shareLink = '';
+    let shareWarning = '';
+    let shareNotice = '';
+    try {
+      const shareResult = await preparePrivateShare(openReport);
+      shareLink = shareResult?.url || '';
+      shareNotice = shareResult?.warning || '';
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+          ? error
+          : error == null
+            ? 'The link request failed without a response from the server. Open the local Supabase diagnostics page to see whether the table and bucket are reachable.'
+            : 'The private report link could not be prepared; the browser returned an unrecognized error.';
+      shareWarning = `${errorMessage} The email can still open with report details; download and attach the photo yourself.`;
+      console.warn('Private report link unavailable:', error);
+    }
+    const subject = `Water problem report — ${utility.name}`;
+    const mailto = `mailto:${encodeURI(utility.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(reportEmailBody(openReport, utility, shareLink))}`;
+    if (shareLink) {
+      const storageNote = $('#report-storage-note');
+      if (storageNote) storageNote.textContent = 'This report and photo are stored in Supabase behind a private link. CitizenWater will open an email draft for you; it will not send automatically.';
+    }
+    $('#submission-status').textContent = shareLink
+      ? `${shareNotice ? `${shareNotice} ` : ''}Private report and photo link ready. Opening your email app in another tab; the report link expires ${dateLabel(openReport.shareExpiresAt)}. Review the recipient and tap Send there.`
+      : `${shareWarning || 'The private report link was not prepared.'} The report stays open here. Review the email in the other tab, download and attach the photo, then tap Send there.`;
+    emailTab.location.href = mailto;
+    $('#mark-email-sent').hidden = false;
+  } catch (error) {
+    emailTab.close();
+    const errorMessage = error instanceof Error ? error.message : 'The email draft could not be prepared.';
+    $('#submission-status').textContent = `${errorMessage} Your report remains saved on this device.`;
+  }
+}
+
+$('#submit-report').addEventListener('click', openEmailDraft);
+$('#mark-email-sent').addEventListener('click', async () => {
+  if (!openReport || !openReport.emailDraftOpenedAt) return;
+  openReport.status = 'submitted';
+  openReport.handoffMethod = 'email-app';
+  openReport.submittedAt = new Date().toISOString();
+  await saveReport(openReport);
+  try { await syncCloudStatus(openReport); } catch (error) { showToast(`Saved on this device; cloud status did not update. ${error.message}`); }
+  await refreshReports();
+  showReport(openReport);
+  showToast('Marked as sent by you. Delivery is not confirmed by CitizenWater.');
+});
+$('#copy-report-details').addEventListener('click', async () => {
+  if (!openReport) return;
+  const utility = utilities.find((item) => item.id === openReport.utilityId) || openReport.utilitySnapshot;
+  const editor = $('#detail-description');
+  const description = editor ? editor.value.trim() : openReport.description;
+  if (!description) {
+    $('#submission-status').textContent = 'Add a description before copying report details.';
+    return;
+  }
+  openReport.description = description;
+  await saveReport(openReport);
+  try {
+    await navigator.clipboard.writeText(`To: ${utility?.email || 'No utility email listed'}\nSubject: Water problem report — ${utility?.name || 'CitizenWater'}\n\n${reportEmailBody(openReport, utility)}`);
+    $('#submission-status').textContent = 'Report details copied. Paste them into your email if no email app opens.';
+  } catch {
+    $('#submission-status').textContent = 'Copy is unavailable in this browser. Use Open email app or select the report text above and copy it.';
+  }
+});
+$('#download-report-photo').addEventListener('click', () => {
+  if (!openReport?.photo) return;
+  const mime = openReport.photoMimeType || openReport.photo.type || 'image/jpeg';
+  const extension = (mime.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(openReport.photo);
+  link.href = url;
+  link.download = `citizenwater-${String(openReport.id).slice(0, 8)}.${extension}`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  $('#submission-status').textContent = `Photo downloaded as ${link.download}. Attach it in your email app.`;
+});
+
+$('#replace-report-photo').addEventListener('click', () => replacePhotoInput.click());
+replacePhotoInput.addEventListener('change', async () => {
+  const file = replacePhotoInput.files?.[0];
+  replacePhotoInput.value = '';
+  if (!file || !openReport) return;
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 4 * 1024 * 1024) {
+    $('#submission-status').textContent = 'Choose a JPEG, PNG, or WebP photo no larger than 4 MB.';
+    return;
+  }
+
+  openReport.photo = file;
+  openReport.photoMimeType = file.type;
+  const previousUrl = objectUrls.get(openReport.id);
+  if (previousUrl) URL.revokeObjectURL(previousUrl);
+  objectUrls.delete(openReport.id);
+  const photoPreview = $('#detail-body .detail-photo');
+  if (photoPreview) photoPreview.src = imageUrl(openReport);
+  try {
+    await saveReport(openReport);
+    $('#submission-status').textContent = 'Photo replaced and saved in this browser. Try Open email app again to upload it to Supabase.';
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'the browser gave no error details';
+    $('#submission-status').textContent = `The replacement photo is available in this tab, but could not be saved in this browser (${reason}). Try Open email app now.`;
+  }
+});
+
 photoInput.addEventListener('change', () => {
   const file = photoInput.files?.[0];
   if (!file) {
@@ -215,9 +564,9 @@ photoInput.addEventListener('change', () => {
     updateSaveState();
     return;
   }
-  if (!file.type.startsWith('image/')) {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 4 * 1024 * 1024) {
     photoInput.value = '';
-    setError('Choose an image file for the report photo.');
+    setError('Choose a JPEG, PNG, or WebP image smaller than 4 MB.');
     updateSaveState();
     return;
   }
@@ -235,17 +584,55 @@ $('#cancel-report').addEventListener('click', () => reportDialog.close());
 $('#close-detail').addEventListener('click', () => detailDialog.close());
 $('#close-archive').addEventListener('click', () => archiveDialog.close());
 $('#show-archive').addEventListener('click', () => archiveDialog.showModal());
+$('#mark-still-open').addEventListener('click', async () => {
+  if (!openReport) return;
+  openReport.lastCheckedAt = new Date().toISOString();
+  openReport.resolutionNote = 'Still open when checked by you';
+  await saveReport(openReport);
+  try { await syncCloudStatus(openReport); } catch (error) { showToast(`Saved on this device; cloud status did not update. ${error.message}`); }
+  await refreshReports();
+  showReport(openReport);
+  showToast('Updated. This is your check; the app has not independently verified the issue.');
+});
+$('#create-follow-up').addEventListener('click', () => {
+  if (!openReport) return;
+  const earlierReport = openReport;
+  detailDialog.close();
+  resetForm();
+  followUpOfId = earlierReport.id;
+  descriptionInput.value = earlierReport.description || '';
+  $('#dialog-title').textContent = 'Report this problem again';
+  reportDialog.showModal();
+  updateSaveState();
+});
 $('#mark-fixed').addEventListener('click', async () => {
   if (!openReport) return;
   openReport.status = 'fixed';
   openReport.fixedAt = new Date().toISOString();
   await saveReport(openReport);
+  try { await syncCloudStatus(openReport); } catch (error) { showToast(`Saved on this device; cloud status did not update. ${error.message}`); }
   detailDialog.close();
   await refreshReports();
   showToast('Marked fixed. This is your update, not an independent check.');
 });
 $('#delete-report').addEventListener('click', async () => {
-  if (!openReport || !window.confirm('Delete this report and its saved photo from this device?')) return;
+  if (!openReport || !window.confirm(openReport.shareToken
+    ? 'Delete this report and its private photo from this device and CitizenWater sharing?'
+    : 'Delete this report and its saved photo from this device?')) return;
+  if (openReport.shareToken) {
+    try {
+      const response = await fetch(`/api/reports/${encodeURIComponent(openReport.id)}`, {
+        method: 'DELETE', headers: { authorization: `Bearer ${openReport.shareToken}` }
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || 'Cloud deletion failed.');
+      }
+    } catch (error) {
+      $('#submission-status').textContent = `${error.message} The local report was kept so you can try again.`;
+      return;
+    }
+  }
   await deleteReport(openReport.id);
   const url = objectUrls.get(openReport.id);
   if (url) URL.revokeObjectURL(url);
@@ -253,7 +640,7 @@ $('#delete-report').addEventListener('click', async () => {
   openReport = null;
   detailDialog.close();
   await refreshReports();
-  showToast('Report deleted from this device.');
+  showToast('Report deleted from this device and its private share.');
 });
 reportForm.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -272,13 +659,21 @@ reportForm.addEventListener('submit', async (event) => {
       photoMimeType: photo.type,
       latitude: currentLocation.latitude,
       longitude: currentLocation.longitude,
+      locationName: currentLocation.locationName || null,
       locationCapturedAt: currentLocation.capturedAt,
-      category: null,
       description: descriptionInput.value.trim(),
       utilityId: selectedUtility?.id || null,
       recipientEmail: selectedUtility?.email || null,
-      providerMessageId: null,
+      utilitySnapshot: selectedUtility ? {
+        name: selectedUtility.name,
+        serviceArea: selectedUtility.serviceArea,
+        email: selectedUtility.email || null,
+        directoryLabel: selectedUtility.directoryLabel
+      } : null,
+      linkedToReportId: followUpOfId,
       submittedAt: null,
+      handoffMethod: null,
+      emailDraftOpenedAt: null,
       fixedAt: null,
       resolutionNote: null
     });
@@ -293,17 +688,85 @@ reportForm.addEventListener('submit', async (event) => {
   }
 });
 
-window.addEventListener('online', refreshReports);
-window.addEventListener('offline', refreshReports);
-
-try {
-  const response = await fetch('/api/utilities');
-  if (!response.ok) throw new Error('Utility list could not be loaded.');
-  utilities = await response.json();
+window.addEventListener('online', async () => {
+  if (sharedMode) return;
+  try { await loadUtilityDirectory(); } catch (error) { console.warn('Could not refresh the utility directory:', error); }
+  if (currentLocation) updateMatch();
   await refreshReports();
-} catch (error) {
-  $('#empty-state').hidden = false;
-  $('#empty-state h3').textContent = 'Your reports are ready to start';
-  $('#empty-state p').textContent = 'The demo utility directory did not load. You can still save a report; no contact will be guessed.';
-  console.error('Could not load utility directory:', error);
+});
+window.addEventListener('offline', () => { if (!sharedMode) refreshReports(); });
+
+async function showSharedReport() {
+  const token = new URLSearchParams(location.hash.slice(1)).get('share');
+  if (!token) return false;
+  sharedMode = true;
+  $('.topbar').hidden = true;
+  $('.layout').hidden = true;
+  $('#shared-report-view').hidden = false;
+  const title = $('#shared-report-title');
+  const message = $('#shared-report-status');
+  try {
+    const response = await fetch('/api/shared-report', { headers: { authorization: `Bearer ${token}` } });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'This report link could not be opened.');
+    const report = result.report;
+    title.textContent = report.description?.slice(0, 100) || 'Water problem report';
+    message.textContent = report.status === 'fixed'
+      ? 'The citizen marked this problem fixed. CitizenWater has not independently verified the repair.'
+      : report.status === 'submitted'
+        ? 'The citizen marked this report as sent. CitizenWater cannot verify email delivery or a utility response.'
+        : 'A citizen shared this report. Email delivery has not been confirmed.';
+    $('#shared-report-description').textContent = report.description || 'No description was provided.';
+    $('#shared-report-photo').src = result.imageUrl;
+    const facts = $('#shared-report-facts');
+    const location = Number.isFinite(report.latitude) && Number.isFinite(report.longitude)
+      ? `${report.location_name ? `${report.location_name} · ` : ''}${report.latitude.toFixed(5)}, ${report.longitude.toFixed(5)}`
+      : 'Not captured';
+    const utility = report.utility_snapshot;
+    const rows = [
+      ['Reported', dateLabel(report.created_at)],
+      ['Location', location],
+      ...(utility?.name ? [['Suggested utility', utility.name]] : []),
+      ...(utility?.serviceArea ? [['Sample service area', utility.serviceArea]] : []),
+      ['Link expires', dateLabel(report.share_expires_at)]
+    ];
+    facts.replaceChildren(...rows.map(([label, value]) => {
+      const row = document.createElement('div');
+      const term = document.createElement('dt');
+      const detail = document.createElement('dd');
+      term.textContent = label;
+      detail.textContent = value;
+      row.append(term, detail);
+      return row;
+    }));
+    const map = $('#shared-report-map');
+    if (Number.isFinite(report.latitude) && Number.isFinite(report.longitude)) {
+      map.href = `https://www.openstreetmap.org/?mlat=${report.latitude}&mlon=${report.longitude}#map=16/${report.latitude}/${report.longitude}`;
+      map.hidden = false;
+    } else {
+      map.hidden = true;
+    }
+    $('#shared-report-content').hidden = false;
+    message.textContent = `Private report link verified. ${message.textContent}`;
+  } catch (error) {
+    title.textContent = 'Report link unavailable';
+    message.textContent = error.message;
+  }
+  return true;
+}
+
+if (!await showSharedReport()) {
+  try { await loadUtilityDirectory(); } catch (error) { console.warn('Could not load utility directory:', error); }
+  try { await refreshReports(); } catch (error) {
+    $('#empty-state').hidden = false;
+    $('#empty-state h3').textContent = 'Saved reports could not be opened';
+    $('#empty-state p').textContent = 'Check this browser’s local storage and reload. Reports are stored on this device.';
+    console.error('Could not load saved reports:', error);
+  }
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js').catch((error) => {
+    console.warn('The offline app shell could not be installed:', error);
+  });
 }

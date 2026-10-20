@@ -1,3 +1,21 @@
+const placeCache = new Map();
+export async function reverseGeocode({ latitude, longitude }) {
+  const key = `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
+  if (placeCache.has(key)) return placeCache.get(key);
+  const url = new URL('https://nominatim.openstreetmap.org/reverse');
+  url.search = new URLSearchParams({ format: 'jsonv2', lat: String(latitude), lon: String(longitude), addressdetails: '1', zoom: '18', 'accept-language': navigator.language || 'en' });
+  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!response.ok) throw new Error('Place lookup failed.');
+  const result = await response.json();
+  const address = result.address || {};
+  const locality = address.city || address.town || address.village || address.hamlet || address.municipality || address.county;
+  const street = [address.road, address.house_number].filter(Boolean).join(' ');
+  const placeName = [street, address.suburb || address.neighbourhood || address.quarter || address.residential, locality, address.state, address.country].filter(Boolean).join(', ') || result.name || result.display_name;
+  if (!placeName) throw new Error('No place name was found.');
+  placeCache.set(key, placeName);
+  return placeName;
+}
+
 export function captureLocation() {
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) {

@@ -48,14 +48,17 @@ h2 { margin: 0; font-size: 25px; letter-spacing: -.04em; }
 .empty-state h3 { margin-bottom: 8px; font-size: 17px; }
 .empty-state p { max-width: 330px; margin: auto; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .report-list { display: grid; gap: 12px; }
-.report-card { display: grid; grid-template-columns: 78px 1fr auto; gap: 15px; align-items: center; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); box-shadow: 0 5px 16px #163f3708; cursor: pointer; }
+.report-card { display: grid; grid-template-columns: 78px minmax(0, 1fr) auto; gap: 15px; align-items: center; min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); box-shadow: 0 5px 16px #163f3708; cursor: pointer; }
 .report-card:hover { border-color: #8ebcb2; box-shadow: 0 8px 22px #163f3712; }
 .report-thumb { width: 78px; height: 78px; border-radius: 11px; object-fit: cover; background: var(--mint); }
-.report-title { margin: 0 0 7px; font-size: 14px; line-height: 1.35; }
-.report-meta { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
-.status-pill { align-self: start; padding: 6px 9px; border-radius: 20px; color: #7b5425; background: #fff1d9; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.report-card > div { min-width: 0; }
+.report-title { margin: 0 0 7px; font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; }
+.report-meta { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.status-pill { align-self: start; max-width: 100%; padding: 6px 9px; border-radius: 20px; color: #7b5425; background: #fff1d9; font-size: 10px; font-weight: 800; white-space: normal; overflow-wrap: anywhere; }
 .notice { margin: 0 0 14px; padding: 12px 14px; border: 1px solid #c1e0d5; border-radius: 12px; color: #245949; background: #eefaf5; font-size: 13px; line-height: 1.5; }
 dialog { width: min(590px, calc(100vw - 30px)); max-height: min(88vh, 850px); padding: 0; overflow: auto; border: 1px solid var(--line); border-radius: 20px; color: var(--ink); background: var(--paper); box-shadow: 0 30px 90px #082e3470; }
+#archive-dialog { padding: 22px; }
+#archive-dialog .dialog-heading { margin-bottom: 16px; }
 dialog::backdrop { background: #123d4380; backdrop-filter: blur(3px); }
 #report-form, .detail-content { padding: 25px; }
 .dialog-heading { margin-bottom: 19px; }
@@ -63,14 +66,41 @@ dialog::backdrop { background: #123d4380; backdrop-filter: blur(3px); }
 .icon-button { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); background: white; font-size: 23px; line-height: 1; }
 .icon-button:hover { color: var(--ink); background: var(--canvas); }
 .permission-copy { margin-bottom: 19px; padding: 12px 14px; border-left: 3px solid #61b39b; border-radius: 0 9px 9px 0; color: #42636a; background: #f0f8f5; font-size: 12px; line-height: 1.55; }
-.field { margin: 17px 0; }
-.field label { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 760; }
+.field { min-width: 0; margin: 17px 0; }
+.field label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 740; letter-spacing: -.01em; }
 .field input[type=file], .field textarea { width: 100%; padding: 12px; border: 1px solid #cddbd6; border-radius: 10px; color: var(--ink); background: white; font-size: 13px; }
 .field input[type=file]::file-selector-button { margin-right: 9px; padding: 7px 10px; border: 0; border-radius: 7px; color: var(--teal); background: var(--mint); font-weight: 700; cursor: pointer; }
-.field textarea { resize: vertical; line-height: 1.55; }
-.field input:focus, .field textarea:focus { outline: 3px solid #8ccdc1; outline-offset: 1px; border-color: var(--teal); }
+.field textarea, #detail-description {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: clamp(112px, 18vh, 144px);
+  min-height: 112px;
+  padding: 13px 14px;
+  resize: vertical;
+  border: 1px solid #c8d7d3;
+  border-radius: 11px;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: none;
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.field textarea::placeholder, #detail-description::placeholder { color: #829398; opacity: 1; }
+.field textarea:hover:not(:focus), #detail-description:hover:not(:focus) { border-color: #9fb8b2; }
+.field textarea:focus-visible, #detail-description:focus-visible {
+  outline: 0;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px #0b62701a;
+}
+#detail-description { margin-top: 8px; }
+.field input:focus { outline: 3px solid #8ccdc1; outline-offset: 1px; border-color: var(--teal); }
 .field-hint { margin: 6px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .location-label label { margin: 0; }
+#detail-body > .secondary-button { margin-top: 12px; }
 .photo-preview { display: flex; align-items: center; gap: 14px; margin-top: 11px; }
 .photo-preview img { width: 80px; height: 80px; border-radius: 10px; object-fit: cover; }
 .match-card { margin: 16px 0; padding: 14px; border: 1px solid #cde2dc; border-radius: 12px; background: #f5fbf8; }
@@ -79,7 +109,7 @@ dialog::backdrop { background: #123d4380; backdrop-filter: blur(3px); }
 .match-card span { color: var(--muted); font-size: 11px; line-height: 1.55; }
 .match-card .match-caveat { margin-top: 7px; color: #796442; }
 .form-error { margin: 12px 0; color: #a23e31; font-size: 12px; line-height: 1.5; }
-.dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 .secondary-button { color: var(--ink); border: 1px solid var(--line); background: white; }
 .secondary-button:hover { background: var(--canvas); }
 .detail-photo { width: 100%; max-height: 300px; margin: 4px 0 16px; border-radius: 13px; object-fit: cover; background: var(--mint); }
@@ -90,6 +120,17 @@ dialog::backdrop { background: #123d4380; backdrop-filter: blur(3px); }
 .detail-facts dd { margin: 0; overflow-wrap: anywhere; font-weight: 650; }
 .toast { position: fixed; right: 20px; bottom: 20px; z-index: 5; max-width: min(380px, calc(100vw - 40px)); padding: 13px 17px; border-radius: 12px; color: white; background: #174e53; box-shadow: 0 12px 30px #0a303642; font-size: 13px; opacity: 0; transform: translateY(12px); pointer-events: none; transition: .2s; }
 .toast.visible { opacity: 1; transform: translateY(0); }
+.shared-report-view { display: block; width: min(760px, calc(100% - 36px)); margin: clamp(24px, 7vh, 70px) auto; }
+.shared-report-card { position: static; padding: clamp(22px, 5vw, 38px); }
+.shared-report-content { margin-top: 22px; }
+.shared-report-content .detail-copy { color: #fff; }
+.shared-report-content .detail-facts { color: var(--ink); background: #f7fbfa; }
+.shared-report-content .detail-facts dt { color: var(--muted); }
+.shared-report-content .detail-facts dd { color: var(--ink); }
+.shared-report-content .field-hint { color: #d8eeea; }
+.shared-photo { max-height: min(55vh, 520px); margin: 4px 0 20px; }
+.shared-map-link { display: inline-block; margin: 0 0 18px; color: #d6fff3; font-size: 14px; }
+.shared-map-link:hover { color: white; }
 [hidden] { display: none !important; }
 @media (max-width: 760px) {
   .topbar { height: 60px; padding: 0 18px; }
@@ -105,7 +146,12 @@ dialog::backdrop { background: #123d4380; backdrop-filter: blur(3px); }
   .report-card { grid-template-columns: 62px 1fr; gap: 12px; padding: 11px; }
   .report-thumb { width: 62px; height: 62px; }
   .status-pill { grid-column: 2; justify-self: start; margin-top: -4px; }
+  #archive-dialog { padding: 18px; }
+  #archive-dialog .report-card { grid-template-columns: 54px minmax(0, 1fr); gap: 10px; padding: 10px; }
+  #archive-dialog .report-thumb { width: 54px; height: 54px; }
+  #archive-dialog .status-pill { grid-column: 2; justify-self: start; margin-top: -4px; }
   .section-heading { gap: 8px; }
   .text-button { font-size: 12px; }
   #report-form, .detail-content { padding: 20px; }
+  .field textarea, #detail-description { height: clamp(112px, 20vh, 140px); padding: 12px 13px; }
 }

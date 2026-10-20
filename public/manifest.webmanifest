@@ -1,0 +1,32 @@
+{
+  "id": "/",
+  "name": "CitizenWater — Community water reports",
+  "short_name": "CitizenWater",
+  "description": "Report a water problem and follow up from your phone.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f5f8f6",
+  "theme_color": "#0b6270",
+  "icons": [
+    {
+      "src": "/icons/citizenwater-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/citizenwater-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/citizenwater.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
