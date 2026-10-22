@@ -248,7 +248,8 @@ app.get('/api/shared-report', async (request, response) => {
     const rows = await supabaseFetch(`/rest/v1/reports?${filters}`);
     const report = rows?.[0];
     if (!report) return response.status(404).json({ error: 'This report link is invalid or has expired.' });
-    const signed = await supabaseFetch(`/storage/v1/object/sign/${encodeURIComponent(supabaseSettings().bucket)}/${report.photo_path.split('/').map(encodeURIComponent).join('/')}`, {
+    const settings = supabaseSettings();
+    const signed = await supabaseFetch(`/storage/v1/object/sign/${encodeURIComponent(settings.bucket)}/${report.photo_path.split('/').map(encodeURIComponent).join('/')}`, {
       method: 'POST', body: JSON.stringify({ expiresIn: 300 })
     });
     if (typeof signed?.signedURL !== 'string') throw new Error('Supabase did not return a signed photo URL.');
