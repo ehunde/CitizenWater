@@ -251,8 +251,11 @@ app.get('/api/shared-report', async (request, response) => {
     const signed = await supabaseFetch(`/storage/v1/object/sign/${encodeURIComponent(supabaseSettings().bucket)}/${report.photo_path.split('/').map(encodeURIComponent).join('/')}`, {
       method: 'POST', body: JSON.stringify({ expiresIn: 300 })
     });
-    const imageUrl = new URL(signed.signedURL, `${supabaseSettings().url}/`).toString();
-    return response.json({ report, imageUrl });
+    if (typeof signed?.signedURL !== 'string') throw new Error('Supabase did not return a signed photo URL.');
+    const signedUrl = /^https?:\/\//i.test(signed.signedURL)
+      ? signed.signedURL
+      : new URL(`/storage/v1${signed.signedURL.startsWith('/') ? '' : '/'}${signed.signedURL}`, `${settings.url}/`).toString();
+    return response.json({ report, imageUrl: signedUrl });
   } catch (error) {
     console.error('Could not load shared report:', error.message);
     return response.status(error.status || 502).json({ error: 'Could not load this report right now. Please try again.' });
