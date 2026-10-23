@@ -70,6 +70,8 @@ dialog::backdrop { background: #123d4380; backdrop-filter: blur(3px); }
 .field label, .field .field-label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 740; letter-spacing: -.01em; }
 .photo-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .photo-actions .secondary-button { flex: 1 1 180px; }
+.camera-content { padding: 24px; }
+.camera-video { display: block; width: 100%; max-height: 60vh; border-radius: 14px; background: #102a30; object-fit: contain; }
 .field input[type=file], .field textarea { width: 100%; padding: 12px; border: 1px solid #cddbd6; border-radius: 10px; color: var(--ink); background: white; font-size: 13px; }
 .field input[type=file]::file-selector-button { margin-right: 9px; padding: 7px 10px; border: 0; border-radius: 7px; color: var(--teal); background: var(--mint); font-weight: 700; cursor: pointer; }
 .field textarea, #detail-description {

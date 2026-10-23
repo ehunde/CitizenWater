@@ -7,7 +7,10 @@ const reportDialog = $('#report-dialog');
 const reportForm = $('#report-form');
 const detailDialog = $('#detail-dialog');
 const archiveDialog = $('#archive-dialog');
-const cameraPhotoInput = $('#photo-camera');
+const cameraDialog = $('#camera-dialog');
+const cameraVideo = $('#camera-video');
+const cameraStatus = $('#camera-status');
+const capturePhotoButton = $('#capture-photo');
 const libraryPhotoInput = $('#photo-library');
 const replacePhotoInput = $('#replace-report-photo-input');
 const descriptionInput = $('#description');
@@ -31,6 +34,8 @@ let sharedMode = false;
 let toastTimer;
 let selectedPhoto = null;
 let photoPreviewUrl = null;
+let cameraStream = null;
+let cameraRequestId = 0;
 
 function dateLabel(iso) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
@@ -257,7 +262,6 @@ function showReport(report) {
 function resetForm() {
   reportForm.reset();
   selectedPhoto = null;
-  cameraPhotoInput.value = '';
   libraryPhotoInput.value = '';
   if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
   photoPreviewUrl = null;
@@ -565,9 +569,7 @@ replacePhotoInput.addEventListener('change', async () => {
   }
 });
 
-function handlePhotoSelection(event) {
-  const file = event.currentTarget.files?.[0];
-  event.currentTarget.value = '';
+function useSelectedPhoto(file) {
   if (!file) return;
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 4 * 1024 * 1024) {
     selectedPhoto = null;
@@ -587,11 +589,93 @@ function handlePhotoSelection(event) {
   photoPreview.hidden = false;
   updateSaveState();
 }
-cameraPhotoInput.addEventListener('change', handlePhotoSelection);
-libraryPhotoInput.addEventListener('change', handlePhotoSelection);
-$('#take-photo').addEventListener('click', () => cameraPhotoInput.click());
+
+function handlePhotoSelection(event) {
+  const file = event.currentTarget.files?.[0];
+  event.currentTarget.value = '';
+  useSelectedPhoto(file);
+}
+
+function stopCamera() {
+  cameraRequestId += 1;
+  cameraStream?.getTracks().forEach((track) => track.stop());
+  cameraStream = null;
+  cameraVideo.srcObject = null;
+  capturePhotoButton.disabled = true;
+}
+
+async function startCamera() {
+  cameraDialog.showModal();
+  cameraStatus.textContent = 'Allow camera access when your browser asks.';
+  capturePhotoButton.disabled = true;
+  const requestId = ++cameraRequestId;
+  if (!navigator.mediaDevices?.getUserMedia) {
+    cameraStatus.textContent = 'Camera access is unavailable in this browser or connection. Use Choose an existing photo instead.';
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: 'environment' } }
+    });
+    if (requestId !== cameraRequestId || !cameraDialog.open) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    cameraStream = stream;
+    cameraVideo.srcObject = stream;
+    await cameraVideo.play();
+    if (requestId === cameraRequestId) {
+      cameraStatus.textContent = 'Position the camera, then capture your photo.';
+      capturePhotoButton.disabled = false;
+    }
+  } catch (error) {
+    if (requestId !== cameraRequestId) return;
+    cameraStream?.getTracks().forEach((track) => track.stop());
+    cameraStream = null;
+    cameraVideo.srcObject = null;
+    const reason = error?.name === 'NotAllowedError'
+      ? 'Camera permission was blocked. Allow camera access for CitizenWater in your browser settings, then try again.'
+      : error?.name === 'NotFoundError'
+        ? 'No camera was found on this device. Use Choose an existing photo instead.'
+        : 'The camera could not be started. Close other apps using the camera and try again, or choose an existing photo.';
+    cameraStatus.textContent = reason;
+  }
+}
+
+async function captureCameraPhoto() {
+  const width = cameraVideo.videoWidth;
+  const height = cameraVideo.videoHeight;
+  if (!width || !height) {
+    cameraStatus.textContent = 'The camera is not ready yet. Wait a moment and try again.';
+    return;
+  }
+  capturePhotoButton.disabled = true;
+  const scale = Math.min(1, 1920 / Math.max(width, height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  canvas.getContext('2d')?.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+  try {
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.86));
+    if (!blob) throw new Error('The camera image could not be created.');
+    const photo = new File([blob], `citizenwater-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    cameraDialog.close();
+    useSelectedPhoto(photo);
+  } catch {
+    cameraStatus.textContent = 'The photo could not be captured. Try again or choose an existing photo.';
+    capturePhotoButton.disabled = false;
+  }
+}
+
+cameraDialog.addEventListener('close', stopCamera);
+$('#take-photo').addEventListener('click', startCamera);
 $('#choose-photo').addEventListener('click', () => libraryPhotoInput.click());
 $('#change-photo').addEventListener('click', () => libraryPhotoInput.click());
+capturePhotoButton.addEventListener('click', captureCameraPhoto);
+$('#close-camera').addEventListener('click', () => cameraDialog.close());
+$('#cancel-camera').addEventListener('click', () => cameraDialog.close());
+libraryPhotoInput.addEventListener('change', handlePhotoSelection);
 descriptionInput.addEventListener('input', updateSaveState);
 $('#get-location').addEventListener('click', requestLocation);
 $('#start-report').addEventListener('click', () => { resetForm(); reportDialog.showModal(); });
