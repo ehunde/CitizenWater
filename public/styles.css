@@ -67,7 +67,9 @@ dialog::backdrop { background: #123d4380; backdrop-filter: blur(3px); }
 .icon-button:hover { color: var(--ink); background: var(--canvas); }
 .permission-copy { margin-bottom: 19px; padding: 12px 14px; border-left: 3px solid #61b39b; border-radius: 0 9px 9px 0; color: #42636a; background: #f0f8f5; font-size: 12px; line-height: 1.55; }
 .field { min-width: 0; margin: 17px 0; }
-.field label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 740; letter-spacing: -.01em; }
+.field label, .field .field-label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 740; letter-spacing: -.01em; }
+.photo-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.photo-actions .secondary-button { flex: 1 1 180px; }
 .field input[type=file], .field textarea { width: 100%; padding: 12px; border: 1px solid #cddbd6; border-radius: 10px; color: var(--ink); background: white; font-size: 13px; }
 .field input[type=file]::file-selector-button { margin-right: 9px; padding: 7px 10px; border: 0; border-radius: 7px; color: var(--teal); background: var(--mint); font-weight: 700; cursor: pointer; }
 .field textarea, #detail-description {

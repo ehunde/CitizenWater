@@ -7,7 +7,8 @@ const reportDialog = $('#report-dialog');
 const reportForm = $('#report-form');
 const detailDialog = $('#detail-dialog');
 const archiveDialog = $('#archive-dialog');
-const photoInput = $('#photo');
+const cameraPhotoInput = $('#photo-camera');
+const libraryPhotoInput = $('#photo-library');
 const replacePhotoInput = $('#replace-report-photo-input');
 const descriptionInput = $('#description');
 const saveButton = $('#save-report');
@@ -28,6 +29,8 @@ let utilities = [];
 let utilityDirectoryAvailable = false;
 let sharedMode = false;
 let toastTimer;
+let selectedPhoto = null;
+let photoPreviewUrl = null;
 
 function dateLabel(iso) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
@@ -47,7 +50,7 @@ function setError(message = '') {
 }
 
 function updateSaveState() {
-  saveButton.disabled = !(currentLocation && photoInput.files?.[0] && descriptionInput.value.trim());
+  saveButton.disabled = !(currentLocation && selectedPhoto && descriptionInput.value.trim());
 }
 
 function updateMatch() {
@@ -253,6 +256,11 @@ function showReport(report) {
 
 function resetForm() {
   reportForm.reset();
+  selectedPhoto = null;
+  cameraPhotoInput.value = '';
+  libraryPhotoInput.value = '';
+  if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+  photoPreviewUrl = null;
   followUpOfId = null;
   $('#dialog-title').textContent = 'Tell us what you noticed';
   currentLocation = null;
@@ -557,25 +565,33 @@ replacePhotoInput.addEventListener('change', async () => {
   }
 });
 
-photoInput.addEventListener('change', () => {
-  const file = photoInput.files?.[0];
-  if (!file) {
-    photoPreview.hidden = true;
-    updateSaveState();
-    return;
-  }
+function handlePhotoSelection(event) {
+  const file = event.currentTarget.files?.[0];
+  event.currentTarget.value = '';
+  if (!file) return;
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 4 * 1024 * 1024) {
-    photoInput.value = '';
+    selectedPhoto = null;
+    photoPreview.hidden = true;
+    photoImage.removeAttribute('src');
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    photoPreviewUrl = null;
     setError('Choose a JPEG, PNG, or WebP image smaller than 4 MB.');
     updateSaveState();
     return;
   }
+  selectedPhoto = file;
   setError();
-  photoImage.src = URL.createObjectURL(file);
+  if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+  photoPreviewUrl = URL.createObjectURL(file);
+  photoImage.src = photoPreviewUrl;
   photoPreview.hidden = false;
   updateSaveState();
-});
-$('#change-photo').addEventListener('click', () => photoInput.click());
+}
+cameraPhotoInput.addEventListener('change', handlePhotoSelection);
+libraryPhotoInput.addEventListener('change', handlePhotoSelection);
+$('#take-photo').addEventListener('click', () => cameraPhotoInput.click());
+$('#choose-photo').addEventListener('click', () => libraryPhotoInput.click());
+$('#change-photo').addEventListener('click', () => libraryPhotoInput.click());
 descriptionInput.addEventListener('input', updateSaveState);
 $('#get-location').addEventListener('click', requestLocation);
 $('#start-report').addEventListener('click', () => { resetForm(); reportDialog.showModal(); });
@@ -648,7 +664,7 @@ reportForm.addEventListener('submit', async (event) => {
   saveButton.disabled = true;
   setError();
   try {
-    const photo = photoInput.files[0];
+    const photo = selectedPhoto;
     const now = new Date().toISOString();
     await saveReport({
       id: crypto.randomUUID(),
