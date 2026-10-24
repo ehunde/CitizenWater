@@ -60,15 +60,15 @@ Build mode: learn
 
 ## Code Tour and App Map
 
-- [ ] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
-- [ ] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
-- [ ] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
+- [x] Learning activity complete — evidence-based recap of the report handoff decision, observed behavior, and code route (not an interactive code tour)
+- [x] Optional edit and transfer reflection addressed — not applicable to this recap; no source edit was needed
+- [x] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
 
-Activity and evidence: [what actually happened; real document/test/code references; unfinished work if interrupted]
-Route and stops: [actual paths and symbols; guided stops completed, or reference-only route]
-Edit outcome: [tried/kept/reverted/declined/not applicable; verification if changed]
-Reflection: [offered/answered/declined/already covered — personal answer belongs only in the ignored profile]
-Activity mode: [live app and editor, explicit static fallback, focused alternative, prior practice, or recap]
+Activity and evidence: Brief recap tied to the learner-confirmed email handoff: opening a draft alone leaves a report Pending; the learner later marked it sent and confirmed the status/offline follow-up flow worked. See the slice 2 and 3 evidence and spec.md > Data flow.
+Route and stops: Reference-only route in devpost/app-map.html: public/js/app.js report form submit → public/js/storage.js saveReport → public/js/app.js refreshReports; optional email-share route via openEmailDraft and preparePrivateShare.
+Edit outcome: Not applicable; this was a recap and no source change was part of the learning activity.
+Reflection: Not asked; the user was focused on specification compliance and finishing the app.
+Activity mode: Evidence-based recap and standalone app map; no live code tour claimed.
 
 ## Revisions
 

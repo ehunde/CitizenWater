@@ -25,7 +25,7 @@ Worldwide use is the product goal, but a verified global utility directory is ou
 | Utility lookup | Deterministic distance calculation against sample coordinates | Explainable recipient choice; never guess contacts. |
 | Email | `mailto:` draft opened by the browser | Uses the citizen's configured email app; the message includes a private report link when cloud sharing works. |
 | Demo hosting | Local development, then temporary HTTPS preview | Real phone camera/location/install need a secure context. |
-| Accounts/database | None in POC | Keeps first journey small; reports stay on-device. |
+| Accounts | No citizen accounts in the POC | Keeps the reporting journey open without sign-in; a Supabase database stores cloud-shared report copies for expiring links. |
 
 No email-provider credentials or paid email API are needed. The `mailto:` draft includes the listed utility address, report details, approximate location, map link, and private report/photo link when cloud sharing works. If cloud sharing fails, the report remains on the device and the draft has no photo link. The app cannot confirm that a draft was sent or delivered.
 
@@ -122,6 +122,8 @@ Deferred: worldwide verified directory; AI features; jurisdiction validation; ca
 8. Complete local walkthrough, then HTTPS phone preview: install, camera, location, offline save, reminder, review, email acceptance.
 
 ## Decisions and open issues
+
+Review note (2026-10-24): The agreed core reporting, private-share, citizen-controlled email, offline follow-up, and archive flows are implemented and the learner has reported that they work. Supabase is part of the POC for shared copies; IndexedDB remains the on-device store. The final phone walkthrough is not marked complete in the build checklist because the recorded Firefox location retry still needs explicit confirmation. The current product decision also removes photo-replacement/download fallback controls: if private sharing fails, the draft has report details but no photo link.
 
 Resolved: vanilla JavaScript; Node 24 LTS/Express 5; manually written descriptions with no AI model or AI API calls; coordinate-based matching; IndexedDB/offline shell; private Supabase row/photo only when opening the email draft; hashed 30-day bearer link; no push; `mailto:` in the citizen's email app; local first then temporary HTTPS preview; no accounts or paid provider API in POC.
 

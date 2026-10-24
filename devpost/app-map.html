@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>CitizenWater app map</title>
+  <style>
+    :root { color-scheme: light; --ink:#183138; --muted:#52676c; --line:#cbd9d8; --paper:#f4f8f7; --card:#fff; --teal:#0b6270; --soft:#e8f3f2; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { max-width:960px; margin:0 auto; padding:clamp(1rem,4vw,2.5rem); }
+    h1,h2,h3 { line-height:1.2; }
+    h1 { margin:.15rem 0 .5rem; font-size:clamp(2rem,5vw,3rem); }
+    h2 { margin:0 0 .8rem; font-size:1.35rem; }
+    h3 { margin:0 0 .4rem; font-size:1rem; }
+    p { margin:.4rem 0 .8rem; }
+    code { background:#edf2f1; padding:.08rem .3rem; border-radius:.25rem; overflow-wrap:anywhere; }
+    .eyebrow { color:var(--teal); font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:.78rem; }
+    .lede { max-width:70ch; color:var(--muted); font-size:1.08rem; }
+    section { margin:1.2rem 0; padding:clamp(1rem,3vw,1.5rem); background:var(--card); border:1px solid var(--line); border-radius:1rem; }
+    .diagram { margin-top:1rem; padding:.5rem; overflow-x:auto; background:var(--soft); border-radius:.75rem; }
+    svg { display:block; width:100%; min-width:620px; height:auto; }
+    .route { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr)); gap:.8rem; counter-reset:step; }
+    .stop { border:1px solid var(--line); border-radius:.75rem; padding:1rem; }
+    .stop::before { counter-increment:step; content:"Stop " counter(step); display:block; color:var(--teal); font-weight:700; font-size:.82rem; margin-bottom:.4rem; }
+    .pointers { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr)); gap:.8rem; }
+    .pointer { padding:.8rem; background:var(--soft); border-radius:.7rem; }
+    .notice { border-left:4px solid var(--teal); padding:.65rem .9rem; background:var(--soft); }
+    footer { color:var(--muted); font-size:.9rem; padding:0 .2rem 2rem; }
+    :focus-visible { outline:3px solid #cb6b13; outline-offset:3px; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">CitizenWater · project map</p>
+    <h1>How a report moves through the app</h1>
+    <p class="lede">CitizenWater lets a person record a water problem, keep it on their phone, share a private report link through their own email app, and record follow-up. The browser app handles the screens and local copy; the Express server connects to Supabase for the shared report and photo.</p>
+  </header>
+  <section aria-labelledby="flow-title">
+    <h2 id="flow-title">One real flow: save a report</h2>
+    <p>After the citizen submits the report form, it is saved in IndexedDB and then appears in the active report list. Opening the email draft is a separate, user-initiated cloud-share and handoff step.</p>
+    <div class="diagram">
+      <svg viewBox="0 0 900 240" role="img" aria-labelledby="diagram-title diagram-desc">
+        <title id="diagram-title">Report save and email share flow</title>
+        <desc id="diagram-desc">The report form calls saveReport in IndexedDB. refreshReports displays the pending report. Separately, opening an email draft calls the Express server, which saves a shared copy and photo in Supabase and returns a private link.</desc>
+        <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#0b6270"/></marker></defs>
+        <g fill="#fff" stroke="#7ea9aa" stroke-width="2">
+          <rect x="20" y="40" width="190" height="64" rx="12"/><rect x="260" y="40" width="190" height="64" rx="12"/><rect x="500" y="40" width="175" height="64" rx="12"/><rect x="725" y="40" width="155" height="64" rx="12"/>
+          <rect x="260" y="150" width="190" height="58" rx="12"/><rect x="500" y="150" width="175" height="58" rx="12"/><rect x="725" y="150" width="155" height="58" rx="12"/>
+        </g>
+        <g fill="#183138" font-family="system-ui, sans-serif" text-anchor="middle">
+          <text x="115" y="67" font-size="16" font-weight="700">Report form</text><text x="115" y="88" font-size="13">public/js/app.js</text>
+          <text x="355" y="67" font-size="16" font-weight="700">saveReport()</text><text x="355" y="88" font-size="13">public/js/storage.js</text>
+          <text x="587" y="67" font-size="16" font-weight="700">IndexedDB</text><text x="587" y="88" font-size="13">same browser/device</text>
+          <text x="802" y="67" font-size="16" font-weight="700">Pending report</text><text x="802" y="88" font-size="13">refreshReports()</text>
+          <text x="355" y="175" font-size="15" font-weight="700">Open email draft</text><text x="355" y="194" font-size="12">openEmailDraft()</text>
+          <text x="587" y="175" font-size="15" font-weight="700">Express server</text><text x="587" y="194" font-size="12">server.js</text>
+          <text x="802" y="175" font-size="15" font-weight="700">Private share</text><text x="802" y="194" font-size="12">Supabase + link</text>
+        </g>
+        <g fill="none" stroke="#0b6270" stroke-width="2.5" marker-end="url(#arrow)"><path d="M210 72 H252"/><path d="M450 72 H492"/><path d="M675 72 H717"/><path d="M355 104 V142"/><path d="M450 179 H492"/><path d="M675 179 H717"/></g>
+      </svg>
+    </div>
+  </section>
+  <section aria-labelledby="route-title">
+    <h2 id="route-title">Reference route through the code</h2>
+    <p class="notice">This is a navigation guide, not a claim that a live code tour was completed.</p>
+    <div class="route">
+      <article class="stop"><h3>Form submission</h3><p>In <code>public/js/app.js</code>, search for <code>reportForm.addEventListener('submit'</code>. This collects the reviewed report and invokes local saving.</p></article>
+      <article class="stop"><h3>Local persistence</h3><p>In <code>public/js/storage.js</code>, open <code>saveReport</code>. IndexedDB stores the report and photo so pending work survives reloads on that device.</p></article>
+      <article class="stop"><h3>Visible result and sharing</h3><p>Back in <code>public/js/app.js</code>, <code>refreshReports</code> renders saved reports. For a separate, intentional handoff, follow <code>openEmailDraft</code> to <code>preparePrivateShare</code>; <code>server.js</code> connects to Supabase.</p></article>
+    </div>
+  </section>
+  <section aria-labelledby="change-title">
+    <h2 id="change-title">To change this, start here</h2>
+    <div class="pointers">
+      <div class="pointer"><strong>Report screens and actions:</strong> <code>public/index.html</code> and <code>public/js/app.js</code>.</div>
+      <div class="pointer"><strong>Responsive visual style:</strong> <code>public/styles.css</code>.</div>
+      <div class="pointer"><strong>Offline report storage:</strong> <code>public/js/storage.js</code>. Avoid putting secrets or private API data in the service-worker cache.</div>
+      <div class="pointer"><strong>Cloud report/photo links:</strong> <code>server.js</code> and server environment settings; the Supabase service key stays server-side.</div>
+      <div class="pointer"><strong>Sample utility matching:</strong> <code>src/data/utilities.json</code> and <code>public/js/utility-matcher.js</code>. Directory coverage is limited and labeled as sample data.</div>
+    </div>
+  </section>
+  <section aria-labelledby="practice-title">
+    <h2 id="practice-title">A practice to reuse</h2>
+    <p>Turn a broad requirement into a visible result and a check. In this project, “opening a draft does not mean it was sent” became a clear Pending state until the citizen returns and marks it sent. That criterion guided the email handoff and offline checks recorded in <code>devpost/checklist.md</code>. On another app, define what the user should see after each important action before implementing it.</p>
+  </section>
+  <section aria-labelledby="run-title">
+    <h2 id="run-title">Run and source snapshot</h2>
+    <p>Use Node.js 24, configure the server-side values from <code>.env.example</code> in a local <code>.env</code>, then run <code>npm start</code> from the project folder and open <code>http://localhost:3000</code>. On Render, use the deployed HTTPS address. Never publish the local <code>.env</code>.</p>
+    <p>Mapped application source: commit <code>bae69d0</code>. This page is a snapshot and can drift as the code changes; update the map when the flow or file locations change.</p>
+  </section>
+  <footer><p>Scope note: this is a proof of concept with a sample utility directory. CitizenWater records the citizen's email and repair follow-up; it cannot verify utility delivery or independently confirm a repair.</p></footer>
+</main>
+</body>
+</html>
