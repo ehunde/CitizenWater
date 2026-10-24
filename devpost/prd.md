@@ -14,7 +14,7 @@ Source: `scope.md > The Unique Kernel`, `Who It's For`, and `The Core Loop`.
 2. **Start a report.** CitizenWater explains that location is needed to identify a utility. The citizen enables location access before continuing.
 3. **Capture the problem.** The citizen takes a photo of the water problem. CitizenWater captures the phone's current coordinates with the report.
 4. **Write and route.** The citizen writes a short description of what they observed. Using the coordinates, CitizenWater identifies the nearest available utility contact. If no utility in the immediate area is listed, it selects the closest available one, even if far away, and shows its name and distance.
-5. **Review the report.** The citizen sees the photo, location, their description, selected utility, and listed email address. They can edit the description, download the photo, and copy report details. Choosing **Open email app** saves the report and photo through the server to Supabase, then opens a draft addressed to the listed contact with the report text, map link, and private report link. The link expires after 30 days. If cloud sharing is unavailable, the citizen can attach the downloaded photo instead.
+5. **Review the report.** The citizen sees the photo, location, their description, selected utility, and listed email address. They can edit the description and choose **Open email draft**. CitizenWater saves the report and photo through the server to Supabase, then opens a draft addressed to the listed contact with the report text, map link, and private report link. The link expires after 30 days. If cloud sharing is unavailable, the report remains saved on the device and the draft contains the report details without a photo link.
 6. **Hand off or wait.** The citizen taps Send in their own email app, returns to CitizenWater, and can mark the report sent. CitizenWater cannot verify sending or delivery. If the citizen is offline, the report remains **Pending** on that phone. When connection returns, CitizenWater reminds them; they review and send the report themselves.
 7. **Follow up.** Later, the citizen opens the report after checking the location and marks it **Still open** or **Fixed**. If it is still open, they can wait or send a follow-up report. A fixed report is highlighted as fixed and moved to **Archived**.
 
@@ -24,7 +24,7 @@ Source: `scope.md > The Core Loop`, `What "Working" Looks Like`, and `The POC Bo
 
 - **Home:** A clear **Start a report** action, active reports with status labels, and access to archived reports. No sign-in gate.
 - **Location and photo:** A brief explanation of why location is needed, followed by the location permission step and photo capture. Keep the capture action prominent.
-- **Review report:** Photo preview, citizen-written description, readable location, selected utility and its distance, and the email destination. The citizen can download the photo, copy report details, or open a prefilled email draft. The email includes a private link to the report and photo when Supabase is available.
+- **Review report:** Photo preview, citizen-written description, readable location, selected utility and its distance, and the email destination. The citizen can edit the description or open a prefilled email draft. The email includes a private link to the report and photo when Supabase is available.
 - **Report detail:** The submitted report and its current status, with an action to update it after checking the location. Fixed reports appear in the archive.
 
 ## Look and Feel
@@ -80,8 +80,8 @@ Acceptance criteria:
 ### Review and email handoff
 Source: `scope.md > The Core Loop` and `What "Working" Looks Like`.
 
-- Before sending, show the photo, description, location, selected utility, and email destination together.
-- The citizen can edit the description, download the photo as a fallback, or copy report details before sending.
+- Before opening a draft, show the photo, description, location, selected utility, and email destination together.
+- The citizen can edit the description before opening a draft.
 - When the citizen opens an email draft, CitizenWater stores the report and photo in Supabase through its Express server. The email includes the listed recipient, report details, approximate location, a map link, and a private report link. The citizen reviews and taps Send in their own email app.
 - The private link uses a 256-bit random bearer token. The originating browser keeps the raw token with its local report; Supabase stores only its SHA-256 hash. The link expires after 30 days. A server verifies it before returning report details and a five-minute signed URL for the private photo.
 - The app uses the Supabase service-role key only on the server. It grants no anonymous table or storage access. Reports remain in IndexedDB for the citizen's follow-up; the shared page is read-only.
@@ -92,7 +92,7 @@ Acceptance criteria:
 
 - [ ] The citizen can inspect the report and destination before sending.
 - [ ] The citizen can open a draft addressed to the listed utility with report details and a map link.
-- [ ] The email can include a private report link and photo; if cloud sharing is unavailable, the citizen can download and attach the photo instead.
+- [ ] The email can include a private report link and photo. If cloud sharing is unavailable, keep the report on the device and tell the citizen that the draft has no photo link.
 - [ ] After handoff, the report appears as **Awaiting follow-up** on the home screen and report detail.
 - [ ] The confirmation distinguishes a sent report from a utility response.
 
@@ -178,5 +178,5 @@ One phone-first PWA flow: start without an account, enable location, photograph 
 ## Open Questions
 
 - Which demo community and sample utility contacts will be used? **Resolved during build:** Crown Gardens, Johannesburg, with a labeled approximate routing point and Johannesburg Water's published water-fault contact. The point does not establish jurisdiction.
-- How the email handoff is completed and confirmed in the PWA. **Resolved during build:** open the citizen's configured email app with a prefilled draft and private report link; when Supabase is unavailable, the citizen attaches the downloaded photo. The citizen can mark it sent on return. CitizenWater cannot verify delivery.
+- How the email handoff is completed and confirmed in the PWA. **Resolved during build:** open the citizen's configured email app with a prefilled draft and private report link; if Supabase is unavailable, keep the report on-device and explain that the photo link could not be prepared. The citizen can mark it sent on return. CitizenWater cannot verify delivery.
 - How the PWA reminds the citizen if the app is closed when connectivity returns. **Can be assessed during `4-spec`**; the product requirement is to make the pending report visible and prompt the citizen to review and send it when online.

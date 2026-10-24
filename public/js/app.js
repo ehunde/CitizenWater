@@ -243,7 +243,6 @@ function showReport(report) {
   $('#create-follow-up').hidden = report.status !== 'submitted';
   $('#submit-report').hidden = report.status !== 'pending' && report.status !== 'unknown';
   $('#submit-report').disabled = !utility?.email;
-  $('#copy-report-details').hidden = report.status !== 'pending' && report.status !== 'unknown';
   $('#mark-email-sent').hidden = (report.status !== 'pending' && report.status !== 'unknown') || !report.emailDraftOpenedAt;
   $('#submission-status').textContent = report.status === 'submitted'
     ? 'Marked as sent. Check back after contacting the utility; this app receives no reply automatically.'
@@ -507,24 +506,6 @@ $('#mark-email-sent').addEventListener('click', async () => {
   await refreshReports();
   showReport(openReport);
   showToast('Marked as sent by you. Delivery is not confirmed by CitizenWater.');
-});
-$('#copy-report-details').addEventListener('click', async () => {
-  if (!openReport) return;
-  const utility = utilities.find((item) => item.id === openReport.utilityId) || openReport.utilitySnapshot;
-  const editor = $('#detail-description');
-  const description = editor ? editor.value.trim() : openReport.description;
-  if (!description) {
-    $('#submission-status').textContent = 'Add a description before copying report details.';
-    return;
-  }
-  openReport.description = description;
-  await saveReport(openReport);
-  try {
-    await navigator.clipboard.writeText(`To: ${utility?.email || 'No utility email listed'}\nSubject: Water problem report — ${utility?.name || 'CitizenWater'}\n\n${reportEmailBody(openReport, utility)}`);
-    $('#submission-status').textContent = 'Report details copied. Paste them into your email if no email app opens.';
-  } catch {
-    $('#submission-status').textContent = 'Copy is unavailable in this browser. Use Open email app or select the report text above and copy it.';
-  }
 });
 function useSelectedPhoto(file) {
   if (!file) return;
