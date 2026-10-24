@@ -12,7 +12,6 @@ const cameraVideo = $('#camera-video');
 const cameraStatus = $('#camera-status');
 const capturePhotoButton = $('#capture-photo');
 const libraryPhotoInput = $('#photo-library');
-const replacePhotoInput = $('#replace-report-photo-input');
 const descriptionInput = $('#description');
 const saveButton = $('#save-report');
 const locationStatus = $('#location-status');
@@ -244,8 +243,6 @@ function showReport(report) {
   $('#create-follow-up').hidden = report.status !== 'submitted';
   $('#submit-report').hidden = report.status !== 'pending' && report.status !== 'unknown';
   $('#submit-report').disabled = !utility?.email;
-  $('#download-report-photo').hidden = (report.status !== 'pending' && report.status !== 'unknown') || !report.photo;
-  $('#replace-report-photo').hidden = (report.status !== 'pending' && report.status !== 'unknown') || !report.photo;
   $('#copy-report-details').hidden = report.status !== 'pending' && report.status !== 'unknown';
   $('#mark-email-sent').hidden = (report.status !== 'pending' && report.status !== 'unknown') || !report.emailDraftOpenedAt;
   $('#submission-status').textContent = report.status === 'submitted'
@@ -253,7 +250,7 @@ function showReport(report) {
     : !utility?.email
       ? 'No utility email is listed. This report stays pending here; CitizenWater will not invent a destination.'
       : report.emailDraftOpenedAt
-        ? 'Email draft opened. Attach the downloaded photo, review the recipient and message, then tap Send in your email app. Return here and choose “I sent the email” to track follow-up.'
+        ? 'Email draft opened. Review the recipient and message, then tap Send in your email app. Return here and choose “I sent the email” to track follow-up.'
         : 'Open a draft addressed to the listed utility. You will review and send it yourself; nothing is sent automatically.';
   $('#delete-report').textContent = report.status === 'pending' ? 'Delete report' : 'Delete report';
   detailDialog.showModal();
@@ -316,7 +313,6 @@ function reportEmailBody(report, utility, shareLink = '') {
   const mapLink = Number.isFinite(report.latitude) && Number.isFinite(report.longitude)
     ? `https://www.openstreetmap.org/?mlat=${report.latitude}&mlon=${report.longitude}#map=16/${report.latitude}/${report.longitude}`
     : 'Not available';
-  const photoName = report.photo ? `citizenwater-${String(report.id).slice(0, 8)}.${(report.photoMimeType || report.photo.type || 'image/jpeg').split('/')[1].replace('jpeg', 'jpg')}` : 'No photo attached';
   return [
     'Water problem report',
     '',
@@ -325,7 +321,7 @@ function reportEmailBody(report, utility, shareLink = '') {
     `Map: ${mapLink}`,
     `Suggested utility: ${utility?.name || 'Not available'}`,
     `Service area: ${utility?.serviceArea || 'Not available'}`,
-    ...(shareLink ? [`Private report and photo: ${shareLink}`, `This private link expires ${dateLabel(report.shareExpiresAt)}.`] : [`Photo to attach: ${photoName}`]),
+    ...(shareLink ? [`Private report and photo: ${shareLink}`, `This private link expires ${dateLabel(report.shareExpiresAt)}.`] : ['Private photo link unavailable. The report photo is not included.']),
     '',
     'The location and utility match are approximate. Please verify the details.'
   ].join('\n');
@@ -479,7 +475,7 @@ async function openEmailDraft() {
           : error == null
             ? 'The link request failed without a response from the server. Open the local Supabase diagnostics page to see whether the table and bucket are reachable.'
             : 'The private report link could not be prepared; the browser returned an unrecognized error.';
-      shareWarning = `${errorMessage} The email can still open with report details; download and attach the photo yourself.`;
+      shareWarning = `${errorMessage} The email can still open with report details, but the private photo link could not be added.`;
       console.warn('Private report link unavailable:', error);
     }
     const subject = `Water problem report — ${utility.name}`;
@@ -490,7 +486,7 @@ async function openEmailDraft() {
     }
     $('#submission-status').textContent = shareLink
       ? `${shareNotice ? `${shareNotice} ` : ''}Private report and photo link ready. Opening your email app in another tab; the report link expires ${dateLabel(openReport.shareExpiresAt)}. Review the recipient and tap Send there.`
-      : `${shareWarning || 'The private report link was not prepared.'} The report stays open here. Review the email in the other tab, download and attach the photo, then tap Send there.`;
+      : `${shareWarning || 'The private report link was not prepared.'} The report stays open here. The email draft contains report details only; try again later to include the private photo link.`;
     emailTab.location.href = mailto;
     $('#mark-email-sent').hidden = false;
   } catch (error) {
@@ -530,45 +526,6 @@ $('#copy-report-details').addEventListener('click', async () => {
     $('#submission-status').textContent = 'Copy is unavailable in this browser. Use Open email app or select the report text above and copy it.';
   }
 });
-$('#download-report-photo').addEventListener('click', () => {
-  if (!openReport?.photo) return;
-  const mime = openReport.photoMimeType || openReport.photo.type || 'image/jpeg';
-  const extension = (mime.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(openReport.photo);
-  link.href = url;
-  link.download = `citizenwater-${String(openReport.id).slice(0, 8)}.${extension}`;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  $('#submission-status').textContent = `Photo downloaded as ${link.download}. Attach it in your email app.`;
-});
-
-$('#replace-report-photo').addEventListener('click', () => replacePhotoInput.click());
-replacePhotoInput.addEventListener('change', async () => {
-  const file = replacePhotoInput.files?.[0];
-  replacePhotoInput.value = '';
-  if (!file || !openReport) return;
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 4 * 1024 * 1024) {
-    $('#submission-status').textContent = 'Choose a JPEG, PNG, or WebP photo no larger than 4 MB.';
-    return;
-  }
-
-  openReport.photo = file;
-  openReport.photoMimeType = file.type;
-  const previousUrl = objectUrls.get(openReport.id);
-  if (previousUrl) URL.revokeObjectURL(previousUrl);
-  objectUrls.delete(openReport.id);
-  const photoPreview = $('#detail-body .detail-photo');
-  if (photoPreview) photoPreview.src = imageUrl(openReport);
-  try {
-    await saveReport(openReport);
-    $('#submission-status').textContent = 'Photo replaced and saved in this browser. Try Open email app again to upload it to Supabase.';
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : 'the browser gave no error details';
-    $('#submission-status').textContent = `The replacement photo is available in this tab, but could not be saved in this browser (${reason}). Try Open email app now.`;
-  }
-});
-
 function useSelectedPhoto(file) {
   if (!file) return;
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 4 * 1024 * 1024) {
