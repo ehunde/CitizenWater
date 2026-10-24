@@ -224,7 +224,7 @@ app.post('/api/reports/share', limitShareRequests, async (request, response) => 
     }
     console.error('Could not prepare report sharing:', error.message);
     const isLocalRequest = ['localhost', '127.0.0.1'].includes(request.hostname);
-    const genericError = 'Could not prepare the private report link. Your report is still saved on this device; try again or attach the downloaded photo.';
+    const genericError = 'Could not prepare the private report link. Your report is still saved on this device; try again later.';
     const errorMessage = error.status === 503
       ? error.message
       : isLocalRequest

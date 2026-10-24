@@ -131,7 +131,7 @@ Acceptance criteria:
 - **Location off or denied:** Explain that current location is needed to find a utility; allow retry after the citizen enables it.
 - **No nearby utility:** Use the closest available utility from the demo data, show its distance, and let the citizen review it.
 - **No utility contact data:** Keep the report unsent and explain that no contact is available; never invent a recipient.
-- **Email app unavailable:** Keep the report pending and let the citizen copy the listed address and report details into an email provider.
+- **Email app unavailable:** Keep the report pending and explain that the citizen can configure an email handler or retry later.
 - **Description:** The citizen enters and reviews their own description. No model service is called.
 - **Offline before handoff:** Keep the report pending on the same phone and prompt the citizen when it is ready to continue.
 - **Citizen marks sent:** Show **Awaiting follow-up**, and clarify CitizenWater cannot verify the email was sent, received, or read.
