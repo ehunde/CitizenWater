@@ -134,6 +134,7 @@ async function refreshReports() {
   reportList.replaceChildren(...active.map(makeReportCard));
   archiveList.replaceChildren(...archived.map(makeReportCard));
   $('#active-count').textContent = String(active.length);
+  $('#archive-count').textContent = String(archived.length);
   $('#empty-state').hidden = active.length > 0;
   $('#archive-empty').hidden = archived.length > 0;
   const waiting = active.filter((report) => report.status === 'pending' || report.status === 'unknown').length;

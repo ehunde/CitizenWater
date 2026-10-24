@@ -1,4 +1,4 @@
-const CACHE_NAME = 'citizenwater-shell-v18';
+const CACHE_NAME = 'citizenwater-shell-v19';
 const CACHE_PREFIX = 'citizenwater-shell-';
 const SHELL_URLS = [
   '/',
