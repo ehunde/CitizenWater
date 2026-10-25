@@ -14,7 +14,7 @@ Water leaks and other service problems are easier to address when people can des
 - Opens the citizen's email app with a prefilled draft. The citizen reviews and sends it; CitizenWater does not send or verify email.
 - Lets the citizen record whether the issue remains open or is fixed. This is citizen follow-up, not independent confirmation from the utility.
 
-The app does not require an account. Reports saved locally are specific to that browser and device. The utility directory is sample data for Crown Gardens, Johannesburg; it is not worldwide or verified service-area coverage.
+The app does not require an account. Reports saved locally are specific to that browser and device. The utility directory contains limited sample data; it is not worldwide or verified service-area coverage.
 
 ## How we built it
 
