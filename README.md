@@ -2,6 +2,10 @@
 
 CitizenWater is a phone-first Progressive Web App (PWA) for reporting water problems and recording follow-up. A citizen can save a report on the current device, share a private report and photo link through their own email app, and later mark the issue still open or fixed.
 
+## Inspiration
+
+Water leaks and other service problems are easier to address when people can describe what they saw, include a location and photo, and follow up later. CitizenWater was shaped around that simple citizen-led journey, with offline use in mind.
+
 ## What it does
 
 - Captures or selects a photo, requests device location, and matches the location to the nearest contact in a small, clearly labeled sample utility directory.
@@ -12,6 +16,26 @@ CitizenWater is a phone-first Progressive Web App (PWA) for reporting water prob
 
 The app does not require an account. Reports saved locally are specific to that browser and device. The utility directory is sample data for Crown Gardens, Johannesburg; it is not worldwide or verified service-area coverage.
 
+## How we built it
+
+The user interface is built with HTML, CSS, and browser JavaScript. IndexedDB keeps reports and photo files on the device. A Node.js 24 and Express server connects to Supabase Postgres and a private Storage bucket when the citizen requests a share link. The PWA manifest and service worker support installation and cache the public app shell. Email uses a prefilled mailto draft in the citizen's email app; there is no paid AI or email-provider API.
+
+## Challenges we ran into
+
+Getting a photo from the browser to the server and then into a private Supabase bucket required checking each step separately. We resolved a bucket-name mismatch and a browser photo-read issue during development. We also had to make offline status honest: reconnecting cannot send an email, and opening a draft cannot prove it was sent. Camera and location testing on phones also requires HTTPS and browser permissions.
+
+## Accomplishments that we're proud of
+
+The main journey now works from writing a report through private photo sharing and later follow-up. The learner confirmed that the private report/photo link worked, that closing a draft leaves the report pending, and that offline pending reports remain saved until the citizen reviews them. Fixed reports can be archived, and the PWA can be installed on supported phone browsers.
+
+## What we learned
+
+Local browser storage and cloud storage solve different problems: IndexedDB keeps a report available on one device, while Supabase provides the shared report link. A service-role key must stay on the server. A mailto draft hands control to the citizen's email app, so CitizenWater cannot know whether a message was sent or delivered. Testing the actual browser, phone, and hosting environment helped uncover setup issues that were not visible from the code alone.
+
+## What's next for CitizenWater
+
+The next steps are to verify location behavior in the remaining target browser, expand the utility directory with confirmed contacts and service areas, and add production safeguards such as automatic cleanup of expired cloud photos and reports, monitoring, and stronger abuse controls. Utility acknowledgements and repair verification would require a separate utility-facing workflow.
+
 ## Run locally
 
 Requirements: Node.js 24 and npm.
@@ -21,7 +45,11 @@ Requirements: Node.js 24 and npm.
 
        npm ci
 
-3. Copy .env.example to .env and enter the Supabase project URL, server-only service-role key, and private Storage bucket name.
+3. Create a local .env file in the project folder with your Supabase project URL, server-only service-role key, and private Storage bucket name:
+
+       SUPABASE_URL=https://your-project-ref.supabase.co
+       SUPABASE_SERVICE_ROLE_KEY=your-service-role-secret
+       SUPABASE_PHOTO_BUCKET=your-private-bucket-name
 4. Start the app:
 
        npm start
@@ -41,7 +69,7 @@ Before enabling cloud sharing:
 3. Apply [supabase/server-access.sql](supabase/server-access.sql) in the Supabase SQL editor. It enables RLS and grants the server role the table access it needs; it does not grant anonymous access.
 4. Add SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and SUPABASE_PHOTO_BUCKET to the server environment.
 
-The service-role key must stay on the server. Never put it in browser code or commit it. .env is ignored by Git; .env.example contains placeholders only.
+The service-role key must stay on the server. Never put it in browser code or commit it. The local .env file is ignored by Git.
 
 The local-only diagnostics page is http://localhost:3000/api/diagnostics/supabase. It reports whether server configuration, the reports table, and the private bucket are reachable. It is intentionally unavailable on non-local hosts. The general readiness route is /api/health.
 
