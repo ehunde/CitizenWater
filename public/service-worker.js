@@ -1,4 +1,4 @@
-const CACHE_NAME = 'citizenwater-shell-v19';
+const CACHE_NAME = 'citizenwater-shell-v20';
 const CACHE_PREFIX = 'citizenwater-shell-';
 const SHELL_URLS = [
   '/',
@@ -7,13 +7,14 @@ const SHELL_URLS = [
   '/manifest.webmanifest',
   '/icons/citizenwater-192.png',
   '/icons/citizenwater-512.png',
+  '/icons/citizenwater-maskable-512.png',
   '/icons/citizenwater.svg',
-  '/js/app.js',
+  '/js/app.js?v=15',
   '/js/location.js',
   '/js/storage.js',
   '/js/utility-matcher.js'
 ];
-const SHELL_PATHS = new Set(SHELL_URLS);
+const SHELL_PATHS = new Set(SHELL_URLS.map((asset) => new URL(asset, self.location.origin).pathname));
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -45,7 +46,7 @@ self.addEventListener('fetch', (event) => {
       if (fresh.ok) await cache.put(request, fresh.clone());
       return fresh;
     } catch {
-      const cached = await cache.match(request);
+      const cached = await cache.match(request, { ignoreSearch: true });
       if (cached) return cached;
       throw new Error('This app resource is unavailable offline.');
     }

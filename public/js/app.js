@@ -803,9 +803,3 @@ if (!await showSharedReport()) {
     console.error('Could not load saved reports:', error);
   }
 }
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js').catch((error) => {
-    console.warn('The offline app shell could not be installed:', error);
-  });
-}

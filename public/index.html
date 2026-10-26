@@ -10,7 +10,14 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icons/citizenwater.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
-  <script type="module" src="/js/app.js?v=14"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js').catch((error) => {
+        console.warn('The offline app shell could not be installed:', error);
+      });
+    }
+  </script>
+  <script type="module" src="/js/app.js?v=15"></script>
 </head>
 <body>
   <header class="topbar">
